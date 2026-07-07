@@ -1,7 +1,8 @@
-# Notas do 1º ano — Mestrado e Doutorado em Economia · EPGE/FGV
+# Notas do Doutorado em Economia · EPGE/FGV
 
-Site que reúne as **notas de aula do primeiro ano** do Mestrado e Doutorado em Economia
-da **EPGE/FGV**, nas três disciplinas, com apostila própria para cada uma.
+Site que reúne as **notas de aula do Doutorado em Economia**
+da **EPGE/FGV**, disciplina a disciplina, com apostila própria para cada uma.
+O acervo cresce a cada disciplina cursada ao longo do doutorado.
 
 - **Autor das notas:** Vítor Wilher
 - **Site:** publicado via GitHub Pages a partir da pasta [`docs/`](docs/)
@@ -23,7 +24,7 @@ mais as **monitorias e listas resolvidas** de cada disciplina.
 ├── README.md
 └── docs/                       # site publicado via GitHub Pages
     ├── .nojekyll
-    ├── index.html              # página-hub das três disciplinas
+    ├── index.html              # página-hub das disciplinas
     ├── assets/
     │   ├── styles.css          # folha de estilo compartilhada
     │   └── epge.png            # logo EPGE/FGV
@@ -39,7 +40,8 @@ mais as **monitorias e listas resolvidas** de cada disciplina.
 ```
 
 As apostilas são compiladas em Quarto (LaTeX + knitr) a partir dos repositórios de cada
-disciplina; aqui ficam apenas os PDFs finais e o site que os apresenta.
+disciplina; aqui ficam apenas os PDFs finais e o site que os apresenta. Novas disciplinas
+do doutorado são acrescentadas seguindo a mesma estrutura.
 
 ## Publicar (GitHub Pages)
 
