@@ -23,11 +23,13 @@ body.mat{ --accent:#1f4e79; --accent-2:#3b74b0; }        /* azul EPGE   */
 body.macro{ --accent:#2e7d32; --accent-2:#57a55b; }      /* verde       */
 body.micro{ --accent:#8a2c2c; --accent-2:#b3261e; }      /* bordô       */
 body.est{ --accent:#5b3a8e; --accent-2:#7e57c2; }        /* violeta     */
+body.econ{ --accent:#0f6b6b; --accent-2:#1a9090; }       /* teal        */
 @media (prefers-color-scheme: dark){
   body.mat{ --accent:#7cb0e0; --accent-2:#9cc6ee; }
   body.macro{ --accent:#7ac47f; --accent-2:#a3d9a6; }
   body.micro{ --accent:#e08a8a; --accent-2:#eda6a6; }
   body.est{ --accent:#b39ddb; --accent-2:#cbbce8; }
+  body.econ{ --accent:#6fc9c9; --accent-2:#96dcdc; }
 }
 
 *{box-sizing:border-box}
@@ -76,9 +78,9 @@ h2{font-family:Georgia,"Times New Roman",serif; font-size:1.55rem; margin:0 0 6p
    border-top:4px solid var(--top,var(--accent))}
 a.disc:hover{text-decoration:none; transform:translateY(-3px);
    box-shadow:0 2px 4px rgba(0,0,0,.06),0 14px 34px rgba(0,0,0,.12)}
-.disc.mat{--top:#1f4e79} .disc.macro{--top:#2e7d32} .disc.micro{--top:#b3261e} .disc.est{--top:#7e57c2}
+.disc.mat{--top:#1f4e79} .disc.macro{--top:#2e7d32} .disc.micro{--top:#b3261e} .disc.est{--top:#7e57c2} .disc.econ{--top:#1a9090}
 @media (prefers-color-scheme: dark){
-  .disc.mat{--top:#7cb0e0} .disc.macro{--top:#7ac47f} .disc.micro{--top:#e08a8a} .disc.est{--top:#b39ddb}
+  .disc.mat{--top:#7cb0e0} .disc.macro{--top:#7ac47f} .disc.micro{--top:#e08a8a} .disc.est{--top:#b39ddb} .disc.econ{--top:#6fc9c9}
 }
 .disc .n{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase;
    color:var(--top); font-weight:700}
@@ -120,3 +122,7 @@ code{background:var(--line); padding:1px 6px; border-radius:5px; font-size:.86em
   header{padding:40px 0 18px} h1{font-size:1.72rem}
   .viewer object,.viewer iframe{height:70vh}
 }
+
+/* card de capitulos ainda por escrever (disciplina em andamento) */
+.card.em-curso{border-style:dashed; opacity:.78}
+.card.em-curso .n{font-style:italic}

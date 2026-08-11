@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notas de Econometria — MPEF · FGV/EPGE</title>
+<meta name="description" content="Notas de Aula de Econometria para o Mestrado e Doutorado Profissional em Economia e Finanças (MPEF, FGV/EPGE), Prof. Marcelo Mello. Notas por Vítor Wilher, com laboratórios em R.">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body class="econ">
+<header>
+  <div class="wrap">
+    <img class="logo" src="../assets/epge.png" alt="EPGE/FGV">
+    <p class="eyebrow">Notas do Doutorado · Disciplina 5</p>
+    <h1>Notas de Aula de Econometria</h1>
+    <p class="sub">Mestrado e Doutorado Profissional em Economia e Finanças — <strong>MPEF / FGV-EPGE</strong></p>
+    <p class="sub">Professor <strong>Marcelo Mello</strong> · notas por <strong>Vítor Wilher</strong></p>
+    <p class="lead">O curso tem uma tese, repetida do primeiro ao último slide:
+      <em>correlação não implica causalidade</em>. Estas notas seguem o programa da disciplina
+      — do problema da inferência causal com dados observacionais ao estimador de mínimos
+      quadrados —, com derivações passo a passo e <strong>laboratórios computacionais em R</strong>
+      executados na própria compilação.</p>
+    <div class="cta">
+      <a class="btn primary" href="apostila.pdf">Ler a apostila (PDF)</a>
+      <a class="btn" href="apostila.pdf" download="Notas_Econometria_MPEF.pdf">Baixar PDF</a>
+    </div>
+    <a class="back" href="../">← Todas as disciplinas</a>
+  </div>
+</header>
+
+<section class="wrap">
+  <h2>Conteúdo</h2>
+  <p class="muted">Versão preliminar, acompanhando o curso: as três primeiras aulas das quinze. Novos capítulos entram conforme a disciplina avança.</p>
+  <div class="grid">
+    <div class="card"><div class="n">Cap. 1</div><h3>Econometria e Causalidade</h3><p>Vioxx, cloroquina e o caso <em>New York Times</em>; experimento ideal, estratégia de identificação e estrutura de dados.</p></div>
+    <div class="card"><div class="n">Cap. 2</div><h3>Revisão de Probabilidade</h3><p>Média condicional, lei das expectativas iteradas, Chebyshev, covariância e correlação.</p></div>
+    <div class="card"><div class="n">Cap. 3</div><h3>Regressão com um Regressor</h3><p>MQO, condições de ortogonalidade, R² e SER, as três hipóteses e a distribuição amostral.</p></div>
+    <div class="card em-curso"><div class="n">Em curso</div><h3>Próximos capítulos</h3><p>Testes e intervalos, regressão múltipla, viés de variável omitida, painel, logit/probit, variáveis instrumentais, diff-in-diff e RDD.</p></div>
+  </div>
+
+  <div class="feat">
+    <div><h4>Causalidade em primeiro lugar</h4><p>O curso abre por quatro casos em que a análise empírica foi publicada, aceita — e estava errada. É o desconforto produtivo que organiza tudo o que vem depois.</p></div>
+    <div><h4>Laboratórios em R</h4><p>Por que a aleatorização funciona, MQO calculado à mão contra <code>lm()</code>, erros-padrão robustos implementados a partir da fórmula sanduíche e a distribuição amostral por simulação.</p></div>
+    <div><h4>Ponte com Estatística</h4><p>Caixas <em>Ferramenta estatística</em> remetem às notas da disciplina de Estatística sempre que um conceito probabilístico é mobilizado.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Ler online</h2>
+  <p class="muted">Visualização do PDF (para leitura em tela cheia, use o botão acima).</p>
+  <div class="viewer">
+    <object data="apostila.pdf" type="application/pdf">
+      <iframe src="apostila.pdf" title="Apostila de Econometria"></iframe>
+      <p class="fallback">Seu navegador não exibe PDFs embutidos. <a href="apostila.pdf">Abrir a apostila</a>.</p>
+    </object>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <div>
+      <div>Notas de estudo de autoria de <strong>Vítor Wilher</strong>.</div>
+      <div class="muted">Baseadas nos slides da disciplina (Prof. Marcelo Mello) e em Stock &amp; Watson (2020).</div>
+    </div>
+    <div>
+      <div><a href="../">Todas as disciplinas</a> · <a href="https://github.com/vitorwilher">GitHub</a></div>
+      <div class="muted">Fontes em Quarto · compilação com LuaLaTeX + knitr.</div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
