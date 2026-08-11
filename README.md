@@ -12,6 +12,7 @@ O acervo cresce a cada disciplina cursada ao longo do doutorado.
 | 1 | Matemática | Silvia Matos | [`docs/matematica/apostila.pdf`](docs/matematica/apostila.pdf) |
 | 2 | Macroeconomia | Fernando de Holanda Barbosa Filho | [`docs/macroeconomia/apostila.pdf`](docs/macroeconomia/apostila.pdf) |
 | 3 | Microeconomia | Carlos Eugênio Ellery Lustosa da Costa | [`docs/microeconomia/apostila.pdf`](docs/microeconomia/apostila.pdf) |
+| 4 | Estatística | Eduardo Campos | [`docs/estatistica/apostila.pdf`](docs/estatistica/apostila.pdf) |
 
 Cada apostila segue o mesmo padrão: a teoria como **método aplicado** — motivação econômica,
 derivações passo a passo, diagramas em **TikZ** e **laboratórios computacionais em R** —
@@ -34,7 +35,10 @@ mais as **monitorias e listas resolvidas** de cada disciplina.
     ├── macroeconomia/
     │   ├── index.html
     │   └── apostila.pdf
-    └── microeconomia/
+    ├── microeconomia/
+    │   ├── index.html
+    │   └── apostila.pdf
+    └── estatistica/
         ├── index.html
         └── apostila.pdf
 ```

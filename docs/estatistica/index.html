@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notas de Estatística — Doutorado em Economia · EPGE/FGV</title>
+<meta name="description" content="Notas de Aula de Estatística para o Doutorado em Economia (EPGE/FGV), Prof. Eduardo Campos. Notas por Vítor Wilher, com laboratórios em R.">
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body class="est">
+<header>
+  <div class="wrap">
+    <img class="logo" src="../assets/epge.png" alt="EPGE/FGV">
+    <p class="eyebrow">Notas do Doutorado · Disciplina 4</p>
+    <h1>Notas de Aula de Estatística</h1>
+    <p class="sub">Doutorado em Economia — <strong>EPGE/FGV</strong></p>
+    <p class="sub">Professor <strong>Eduardo Campos</strong> · notas por <strong>Vítor Wilher</strong></p>
+    <p class="lead">Os doze módulos do programa, na ordem em que a inferência se constrói:
+      da <em>descrição</em> dos dados ao <em>modelo do acaso</em>, e deste à <em>inferência</em> sobre
+      a população. Cada capítulo traz derivações passo a passo, diagramas em TikZ e um
+      <strong>laboratório computacional em R</strong> executado na própria compilação.</p>
+    <div class="cta">
+      <a class="btn primary" href="apostila.pdf">Ler a apostila (PDF)</a>
+      <a class="btn" href="apostila.pdf" download="Notas_Estatistica_EPGE.pdf">Baixar PDF</a>
+    </div>
+    <a class="back" href="../">← Todas as disciplinas</a>
+  </div>
+</header>
+
+<section class="wrap">
+  <h2>Conteúdo</h2>
+  <p class="muted">Nove capítulos cobrindo os doze módulos do programa, do resumo de dados aos testes de hipóteses.</p>
+  <div class="grid">
+    <div class="card"><div class="n">Cap. 1</div><h3>Estatística Descritiva</h3><p>Posição, dispersão, box-plot, outliers e análise bidimensional.</p></div>
+    <div class="card"><div class="n">Cap. 2</div><h3>Probabilidade</h3><p>Axiomas, condicional, independência, probabilidade total e Bayes.</p></div>
+    <div class="card"><div class="n">Cap. 3</div><h3>Variáveis Aleatórias</h3><p>Esperança, variância, padronização e a função de distribuição acumulada.</p></div>
+    <div class="card"><div class="n">Cap. 4</div><h3>Distribuições Discretas</h3><p>Bernoulli, Binomial, Hipergeométrica, Geométrica e Poisson.</p></div>
+    <div class="card"><div class="n">Cap. 5</div><h3>Distribuições Contínuas</h3><p>Uniforme, Exponencial, Normal e Lognormal; falta de memória.</p></div>
+    <div class="card"><div class="n">Cap. 6</div><h3>Funções Lineares de V.A.</h3><p>Somas, médias, o Teorema Central do Limite e carteiras de ativos.</p></div>
+    <div class="card"><div class="n">Cap. 7</div><h3>Estimação Pontual</h3><p>Não-viés, máxima verossimilhança e o método dos momentos.</p></div>
+    <div class="card"><div class="n">Cap. 8</div><h3>Intervalos de Confiança</h3><p>Média, proporção, variância e parâmetros de duas populações.</p></div>
+    <div class="card"><div class="n">Cap. 9</div><h3>Testes de Hipóteses</h3><p>Erros I e II, região crítica, p-valor e os testes t, qui-quadrado e F.</p></div>
+  </div>
+
+  <div class="feat">
+    <div><h4>Da descrição à inferência</h4><p>O livro tem um arco: descrever os dados, modelar o acaso que os gerou e, a partir da amostra, concluir sobre a população.</p></div>
+    <div><h4>Laboratórios em R</h4><p>O Teorema Central do Limite em ação, o viés do divisor <em>n</em>, cem intervalos de confiança simulados e as curvas de poder — código executado na compilação.</p></div>
+    <div><h4>Tabelas de prova</h4><p>Cada capítulo de inferência fecha com uma tabela-resumo: parâmetro, condições, fórmula, distribuição e graus de liberdade.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Ler online</h2>
+  <p class="muted">Visualização do PDF (para leitura em tela cheia, use o botão acima).</p>
+  <div class="viewer">
+    <object data="apostila.pdf" type="application/pdf">
+      <iframe src="apostila.pdf" title="Apostila de Estatística"></iframe>
+      <p class="fallback">Seu navegador não exibe PDFs embutidos. <a href="apostila.pdf">Abrir a apostila</a>.</p>
+    </object>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <div>
+      <div>Notas de estudo de autoria de <strong>Vítor Wilher</strong>.</div>
+      <div class="muted">Baseadas nos slides da disciplina (Prof. Eduardo Campos) e nas referências do curso.</div>
+    </div>
+    <div>
+      <div><a href="../">Todas as disciplinas</a> · <a href="https://github.com/vitorwilher">GitHub</a></div>
+      <div class="muted">Fontes em Quarto · compilação com LuaLaTeX + knitr.</div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
