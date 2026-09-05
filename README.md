@@ -15,6 +15,12 @@ O acervo cresce a cada disciplina cursada ao longo do doutorado.
 | 4 | Estatística | Eduardo Campos | [`docs/estatistica/apostila.pdf`](docs/estatistica/apostila.pdf) |
 | 5 | Econometria | Marcelo Mello | [`docs/econometria/apostila.pdf`](docs/econometria/apostila.pdf) |
 
+## Laboratórios em R
+
+A disciplina de Econometria tem ainda uma série de **notebooks em R** que reproduzem os
+resultados centrais de cada aula e abrem direto no Google Colab:
+[`labs/econometria/`](labs/econometria/).
+
 Cada apostila segue o mesmo padrão: a teoria como **método aplicado** — motivação econômica,
 derivações passo a passo, diagramas em **TikZ** e **laboratórios computacionais em R** —
 mais as **monitorias e listas resolvidas** de cada disciplina.
@@ -45,6 +51,8 @@ mais as **monitorias e listas resolvidas** de cada disciplina.
     └── econometria/
         ├── index.html
         └── apostila.pdf
+└── labs/                       # notebooks executáveis (não fazem parte do site)
+    └── econometria/            # .ipynb com kernel R, abrem no Colab
 ```
 
 As apostilas são compiladas em Quarto (LaTeX + knitr) a partir dos repositórios de cada
