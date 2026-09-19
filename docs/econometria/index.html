@@ -31,7 +31,7 @@
 
 <section class="wrap">
   <h2>Conteúdo</h2>
-  <p class="muted">Versão preliminar, acompanhando o curso: as seis primeiras aulas das quinze. Novos capítulos entram conforme a disciplina avança.</p>
+  <p class="muted">Versão preliminar, acompanhando o curso: as nove primeiras aulas das quinze. Novos capítulos entram conforme a disciplina avança.</p>
   <div class="grid">
     <div class="card"><div class="n">Cap. 1</div><h3>Econometria e Causalidade</h3><p>Vioxx, cloroquina e o caso <em>New York Times</em>; experimento ideal, estratégia de identificação e estrutura de dados.</p></div>
     <div class="card"><div class="n">Cap. 2</div><h3>Revisão de Probabilidade</h3><p>Média condicional, lei das expectativas iteradas, Chebyshev, covariância e correlação.</p></div>
@@ -39,19 +39,22 @@
     <div class="card"><div class="n">Cap. 4</div><h3>Inferência na Regressão</h3><p>Testes de hipótese e valor-p, intervalos de confiança, regressor binário como diferença de médias, heterocedasticidade e Gauss-Markov.</p></div>
     <div class="card"><div class="n">Cap. 5</div><h3>Regressão Múltipla</h3><p>Viés de variável omitida e sua fórmula, efeitos parciais, R² ajustado, multicolinearidade e a distinção entre variável de interesse e variáveis de controle.</p></div>
     <div class="card"><div class="n">Cap. 6</div><h3>Testes na Regressão Múltipla</h3><p>Hipóteses conjuntas e a estatística F, restrições envolvendo vários coeficientes, especificação de modelos e as armadilhas do R².</p></div>
-    <div class="card em-curso"><div class="n">Em curso</div><h3>Próximos capítulos</h3><p>Regressão não linear, painel e efeitos fixos, logit/probit, variáveis instrumentais, diff-in-diff e RDD.</p></div>
+    <div class="card"><div class="n">Cap. 7</div><h3>Funções de Regressão Não-lineares</h3><p>Polinômios e o efeito que depende do nível de X, as três especificações logarítmicas e os termos de interação nos três casos.</p></div>
+    <div class="card"><div class="n">Cap. 8</div><h3>Avaliando Estudos de Regressão</h3><p>Validade interna e externa, as cinco ameaças, o viés de atenuação do erro de medida e o viés de seleção amostral.</p></div>
+    <div class="card"><div class="n">Cap. 9</div><h3>Dados em Painel</h3><p>Efeitos fixos de unidade e de tempo, a transformação <em>within</em>, exogeneidade estrita e erros-padrão clusterizados.</p></div>
+    <div class="card em-curso"><div class="n">Em curso</div><h3>Próximos capítulos</h3><p>Logit e probit, variáveis instrumentais, diferenças-em-diferenças, regressão descontínua e séries temporais.</p></div>
   </div>
 
   <div class="feat">
     <div><h4>Causalidade em primeiro lugar</h4><p>O curso abre por quatro casos em que a análise empírica foi publicada, aceita — e estava errada. É o desconforto produtivo que organiza tudo o que vem depois.</p></div>
     <div><h4>Laboratórios em R</h4><p>Por que a aleatorização funciona, MQO calculado à mão contra <code>lm()</code>, erros-padrão robustos e a estatística F implementados a partir da fórmula, e o tamanho dos testes medido por simulação.</p></div>
-    <div><h4>Listas com gabarito</h4><p>As quatro listas da disciplina reproduzidas em português, cada uma ao fim do capítulo a que corresponde, com resolução desenvolvida — além dos exercícios autorais de cada capítulo.</p></div>
+    <div><h4>Listas com gabarito</h4><p>As cinco listas da disciplina reproduzidas em português, cada uma ao fim do capítulo a que corresponde, com resolução desenvolvida — além dos exercícios autorais de cada capítulo.</p></div>
   </div>
 </section>
 
 <section class="wrap">
   <h2>Laboratórios em R, no navegador</h2>
-  <p class="muted">Uma revisão computacional das seis aulas: cada notebook reproduz em R os resultados centrais de um capítulo e abre no Google Colab com um clique — sem instalar nada. <a href="https://github.com/vitorwilher/doutorado-epge/tree/main/labs/econometria">Ver no GitHub</a>.</p>
+  <p class="muted">Uma revisão computacional das aulas: cada notebook reproduz em R os resultados centrais de um capítulo e abre no Google Colab com um clique — sem instalar nada. <a href="https://github.com/vitorwilher/doutorado-epge/tree/main/labs/econometria">Ver no GitHub</a>.</p>
   <div class="grid">
     <div class="card"><div class="n">Aula 1</div><h3>Causalidade</h3><p>Por que a aleatorização funciona, o viés da autosseleção e o que um <em>proxy</em> ruidoso resolve — e o que não resolve.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/01-causalidade.ipynb">Abrir no Colab →</a></p></div>
     <div class="card"><div class="n">Aula 2</div><h3>Probabilidade</h3><p>Binomial, Chebyshev em cinco distribuições, lei das expectativas iteradas e covariância zero sem independência.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/02-probabilidade.ipynb">Abrir no Colab →</a></p></div>
@@ -59,6 +62,7 @@
     <div class="card"><div class="n">Aula 4</div><h3>Inferência</h3><p>Erro-padrão robusto implementado do zero, o que “95% de confiança” significa e a regressão com <em>dummy</em> como diferença de médias.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/04-inferencia.ipynb">Abrir no Colab →</a></p></div>
     <div class="card"><div class="n">Aula 5</div><h3>Regressão múltipla</h3><p>O viés de variável omitida medido e conferido contra a fórmula — e a demonstração de que ele <strong>não</strong> desaparece com o tamanho da amostra.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/05-regressao-multipla.ipynb">Abrir no Colab →</a></p></div>
     <div class="card"><div class="n">Aula 6</div><h3>Teste F</h3><p>A estatística de Wald do zero, a identidade F = t² e o teste homocedástico rejeitando 15% das vezes quando promete 5%.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/06-teste-f.ipynb">Abrir no Colab →</a></p></div>
+    <div class="card"><div class="n">Aula 9</div><h3>Dados em painel</h3><p>O debate “mais armas, menos crime” com dados reais: o coeficiente troca de sinal com efeitos fixos de estado e vai a zero com efeitos de tempo.</p><p><a class="btn" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/07-dados-painel.ipynb">Abrir no Colab →</a></p></div>
   </div>
 </section>
 
