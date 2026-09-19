@@ -2908,23 +2908,45 @@ Tabela 1: Dicionário do painel <em>SeatBelts</em>.
 <section id="a-progressão-das-especificações" class="level2" data-number="4">
 <h2 data-number="4" class="anchored" data-anchor-id="a-progressão-das-especificações"><span class="header-section-number">4</span> A progressão das especificações</h2>
 <p>Como no laboratório anterior, o argumento inteiro cabe numa sequência de regressões em que muda apenas <strong>o que é mantido constante</strong>.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="Nível ou log? A escolha da forma funcional">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Nota</span>Nível ou log? A escolha da forma funcional
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>A dependente entra em <strong>nível</strong> — mortes por milhão de milhas —, como na aula e no arquivo <code>SEATBELT.gdt</code>. A alternativa seria o <strong>log</strong>, e vale explicitar o que cada uma impõe, porque a escolha não é cosmética:</p>
+<ul>
+<li><strong>em nível</strong>, o modelo assume que a lei retira o <strong>mesmo número absoluto</strong> de mortes de todo estado. Como o estado mais perigoso do painel tem cerca de <span class="math inline">\(2{,}4\)</span> vezes a taxa do mais seguro, isso implica quedas relativas muito diferentes entre eles — 13% num, 5% noutro;</li>
+<li><strong>em log</strong>, assume-se efeito <strong>proporcional</strong> constante: a mesma queda percentual em toda parte, que é a hipótese mais natural para uma tecnologia de segurança.</li>
+</ul>
+<p>O log tem ainda a vantagem de tornar a distribuição quase simétrica (a assimetria cai de <span class="math inline">\(0{,}76\)</span> para <span class="math inline">\(-0{,}11\)</span>) e de produzir coeficientes lidos direto como porcentagem.</p>
+<p>A razão de manter o <strong>nível</strong> como especificação principal é a comparabilidade com a saída do Gretl apresentada em aula — e, sobretudo, o fato de que <strong>a escolha não muda as conclusões</strong>: a seção de robustez mostra os dois lado a lado, com a mesma direção, a mesma significância marginal e magnitudes próximas (<span class="math inline">\(-8\%\)</span> em nível contra <span class="math inline">\(-6\%\)</span> em log). Quando duas formas funcionais concordam, reportar as duas vale mais que defender uma.</p>
+</div>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> lfat <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>     drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(f, <span class="at">data =</span> sb)                                              <span class="co"># MQO agrupado</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>)                          <span class="co"># EF de estado</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>m3 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)      <span class="co"># EF estado + tempo</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># As duas colunas seguintes rodam na SUBAMOSTRA de 556 observacoes em que</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co"># sb_useage existe. m4 repete a especificacao de m3 nessa subamostra -- e a</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co"># comparacao honesta --, e m5 acrescenta o uso do cinto como regressor.</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>sb_uso  <span class="ot">&lt;-</span> <span class="fu">subset</span>(sb, <span class="sc">!</span><span class="fu">is.na</span>(sb_useage))</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>psb_uso <span class="ot">&lt;-</span> <span class="fu">pdata.frame</span>(sb_uso, <span class="at">index =</span> <span class="fu">c</span>(<span class="st">&quot;state&quot;</span>, <span class="st">&quot;year&quot;</span>))</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>m4 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb_uso, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>m5 <span class="ot">&lt;-</span> <span class="fu">plm</span>(<span class="fu">update</span>(f, . <span class="sc">~</span> . <span class="sc">+</span> sb_useage), <span class="at">data =</span> psb_uso,</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>          <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Especificacao principal: a fatalidade em NIVEL -- mortes por milhao de</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># milhas --, como na aula e no arquivo SEATBELT.gdt. A variante em log</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># aparece na secao de robustez.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> fatalityrate <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>     drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(f, <span class="at">data =</span> sb)                                              <span class="co"># MQO agrupado</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>)                          <span class="co"># EF de estado</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>m3 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)      <span class="co"># EF estado + tempo</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># As duas colunas seguintes rodam na SUBAMOSTRA de 556 observacoes em que</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co"># sb_useage existe. m4 repete a especificacao de m3 nessa subamostra -- e a</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># comparacao honesta --, e m5 acrescenta o uso do cinto como regressor.</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>sb_uso  <span class="ot">&lt;-</span> <span class="fu">subset</span>(sb, <span class="sc">!</span><span class="fu">is.na</span>(sb_useage))</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>psb_uso <span class="ot">&lt;-</span> <span class="fu">pdata.frame</span>(sb_uso, <span class="at">index =</span> <span class="fu">c</span>(<span class="st">&quot;state&quot;</span>, <span class="st">&quot;year&quot;</span>))</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>m4 <span class="ot">&lt;-</span> <span class="fu">plm</span>(f, <span class="at">data =</span> psb_uso, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>m5 <span class="ot">&lt;-</span> <span class="fu">plm</span>(<span class="fu">update</span>(f, . <span class="sc">~</span> . <span class="sc">+</span> sb_useage), <span class="at">data =</span> psb_uso,</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>          <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ep_cluster <span class="ot">&lt;-</span> <span class="cf">function</span>(m) <span class="fu">sqrt</span>(<span class="fu">diag</span>(<span class="fu">vcovHC</span>(m, <span class="at">type =</span> <span class="st">&quot;HC1&quot;</span>, <span class="at">cluster =</span> <span class="st">&quot;group&quot;</span>)))</span>
@@ -2969,27 +2991,27 @@ Tabela 1: Dicionário do painel <em>SeatBelts</em>.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">MQO agrupado</td>
-<td style="text-align: right;">0.0743</td>
-<td style="text-align: right;">0.0217</td>
-<td style="text-align: right;">0.0219</td>
-<td style="text-align: right;">0.0207</td>
-<td style="text-align: right;">3.42</td>
+<td style="text-align: right;">0.0011</td>
+<td style="text-align: right;">5e-04</td>
+<td style="text-align: right;">1e-04</td>
+<td style="text-align: right;">4e-04</td>
+<td style="text-align: right;">2.2</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">EF de estado</td>
-<td style="text-align: right;">-0.0556</td>
-<td style="text-align: right;">0.0367</td>
-<td style="text-align: right;">-0.0348</td>
-<td style="text-align: right;">0.0251</td>
-<td style="text-align: right;">-1.51</td>
+<td style="text-align: right;">-0.0017</td>
+<td style="text-align: right;">1e-03</td>
+<td style="text-align: right;">-8e-04</td>
+<td style="text-align: right;">5e-04</td>
+<td style="text-align: right;">-1.7</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">EF estado + tempo</td>
-<td style="text-align: right;">-0.0623</td>
-<td style="text-align: right;">0.0370</td>
-<td style="text-align: right;">-0.0201</td>
-<td style="text-align: right;">0.0223</td>
-<td style="text-align: right;">-1.68</td>
+<td style="text-align: right;">-0.0017</td>
+<td style="text-align: right;">1e-03</td>
+<td style="text-align: right;">-5e-04</td>
+<td style="text-align: right;">5e-04</td>
+<td style="text-align: right;">-1.7</td>
 </tr>
 </tbody>
 </table>
@@ -3007,10 +3029,10 @@ Tabela 1: Dicionário do painel <em>SeatBelts</em>.
 </div>
 <div class="callout-body-container callout-body">
 <p>No <strong>MQO agrupado</strong>, o coeficiente de <code>primary</code> é <strong>positivo</strong> e significante (<span class="math inline">\(t \approx 3{,}4\)</span>): lido ao pé da letra, leis de cinto <em>aumentariam</em> as mortes. É absurdo como relação causal, e tem a mesma explicação do caso <em>Guns</em> — estados que adotaram leis de fiscalização primária diferem sistematicamente dos demais em coisas não observadas.</p>
-<p>Com <strong>efeitos fixos de estado</strong>, o sinal se inverte para <span class="math inline">\(-0{,}056\)</span>. Com efeitos de estado e tempo, <span class="math inline">\(-0{,}062\)</span>.</p>
+<p>Com <strong>efeitos fixos de estado</strong>, o sinal se inverte para <span class="math inline">\(-0{,}00161\)</span>. Com efeitos de estado e tempo, <span class="math inline">\(-0{,}00173\)</span> — isto é, <span class="math inline">\(0{,}00173\)</span> morte a menos por milhão de milhas trafegadas.</p>
 </div>
 </div>
-<p>A diferença em relação ao laboratório do <em>Guns</em> é o que acontece <strong>depois</strong> da inversão. Lá, o coeficiente colapsava para zero; aqui ele se estabiliza num valor <strong>negativo e economicamente relevante</strong>: cerca de <span class="math inline">\(-6\%\)</span> na taxa de fatalidade.</p>
+<p>Como a taxa média é <span class="math inline">\(0{,}0215\)</span>, esse coeficiente equivale a uma queda de cerca de <strong>8%</strong> na fatalidade. A diferença em relação ao laboratório do <em>Guns</em> é o que acontece <strong>depois</strong> da inversão: lá o coeficiente colapsava para zero; aqui ele se estabiliza num valor <strong>negativo e economicamente relevante</strong>.</p>
 </section>
 <section id="a-tabela-completa" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="a-tabela-completa"><span class="header-section-number">5</span> A tabela completa</h2>
@@ -3019,7 +3041,7 @@ Tabela 1: Dicionário do painel <em>SeatBelts</em>.
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">se =</span> <span class="fu">list</span>(<span class="fu">sqrt</span>(<span class="fu">diag</span>(<span class="fu">vcovHC</span>(m1, <span class="at">type =</span> <span class="st">&quot;HC1&quot;</span>))), <span class="fu">ep_cluster</span>(m2), <span class="fu">ep_cluster</span>(m3),</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ep_cluster</span>(m4), <span class="fu">ep_cluster</span>(m5)),</span>
 <span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;Leis de cinto e fatalidade no trânsito&quot;</span>,</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">dep.var.labels =</span> <span class="st">&quot;log(mortes por milhão de milhas)&quot;</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">dep.var.labels =</span> <span class="st">&quot;Mortes por milhão de milhas&quot;</span>,</span>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">column.labels =</span> <span class="fu">c</span>(<span class="st">&quot;Pooled&quot;</span>, <span class="st">&quot;EF estado&quot;</span>, <span class="st">&quot;EF 2 vias&quot;</span>, <span class="st">&quot;EF 2 vias&quot;</span>, <span class="st">&quot;EF 2 vias&quot;</span>),</span>
 <span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">covariate.labels =</span> <span class="fu">c</span>(<span class="st">&quot;Fiscalização primária&quot;</span>, <span class="st">&quot;Fiscalização secundária&quot;</span>,</span>
 <span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                       <span class="st">&quot;Limite 65 mph&quot;</span>, <span class="st">&quot;Limite 70+ mph&quot;</span>, <span class="st">&quot;Alcoolemia 0,08&quot;</span>,</span>
@@ -3062,7 +3084,7 @@ Tabela 1: Dicionário do painel <em>SeatBelts</em>.
 <td style="text-align:left">
 </td>
 <td colspan="4">
-log(mortes por milhão de milhas)
+Mortes por milhão de milhas
 </td>
 <td>
 f
@@ -3141,38 +3163,38 @@ EF 2 vias
 Fiscalização primária
 </td>
 <td>
-0.0743<sup>***</sup>
+0.0011<sup>**</sup>
 </td>
 <td>
--0.0556
+-0.0017<sup>*</sup>
 </td>
 <td>
--0.0623<sup>*</sup>
+-0.0017<sup>*</sup>
 </td>
 <td>
--0.0208
+-0.0002
 </td>
 <td>
-0.0087
+0.0005
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0217)
+(0.0005)
 </td>
 <td>
-(0.0367)
+(0.0010)
 </td>
 <td>
-(0.0370)
+(0.0010)
 </td>
 <td>
-(0.0323)
+(0.0009)
 </td>
 <td>
-(0.0385)
+(0.0010)
 </td>
 </tr>
 <tr>
@@ -3194,38 +3216,38 @@ Fiscalização primária
 Fiscalização secundária
 </td>
 <td>
-0.0219
+0.0001
 </td>
 <td>
--0.0348
+-0.0008<sup>*</sup>
 </td>
 <td>
--0.0201
+-0.0005
 </td>
 <td>
--0.0277
+-0.0006<sup>*</sup>
 </td>
 <td>
--0.0121
+-0.0003
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0207)
+(0.0004)
 </td>
 <td>
-(0.0251)
+(0.0005)
 </td>
 <td>
-(0.0223)
+(0.0005)
 </td>
 <td>
-(0.0171)
+(0.0004)
 </td>
 <td>
-(0.0204)
+(0.0004)
 </td>
 </tr>
 <tr>
@@ -3247,38 +3269,38 @@ Fiscalização secundária
 Limite 65 mph
 </td>
 <td>
-0.0252
+0.0002
 </td>
 <td>
--0.0274
+-0.0011<sup>*</sup>
+</td>
+<td>
+-0.0001
+</td>
+<td>
+-0.0008
 </td>
 <td>
 -0.0007
-</td>
-<td>
--0.0388
-</td>
-<td>
--0.0355
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0183)
+(0.0004)
 </td>
 <td>
-(0.0216)
+(0.0006)
 </td>
 <td>
-(0.0320)
+(0.0009)
 </td>
 <td>
-(0.0263)
+(0.0005)
 </td>
 <td>
-(0.0274)
+(0.0005)
 </td>
 </tr>
 <tr>
@@ -3300,38 +3322,38 @@ Limite 65 mph
 Limite 70+ mph
 </td>
 <td>
-0.1377<sup>***</sup>
+0.0025<sup>***</sup>
 </td>
 <td>
-0.0634<sup>***</sup>
+0.0006
 </td>
 <td>
-0.0742<sup>***</sup>
+0.0003
 </td>
 <td>
-0.0707<sup>***</sup>
+0.0008<sup>*</sup>
 </td>
 <td>
-0.0725<sup>***</sup>
+0.0008<sup>*</sup>
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0251)
+(0.0005)
 </td>
 <td>
-(0.0210)
+(0.0005)
 </td>
 <td>
-(0.0258)
+(0.0006)
 </td>
 <td>
-(0.0214)
+(0.0005)
 </td>
 <td>
-(0.0204)
+(0.0004)
 </td>
 </tr>
 <tr>
@@ -3353,38 +3375,38 @@ Limite 70+ mph
 Alcoolemia 0,08
 </td>
 <td>
--0.1044<sup>***</sup>
+-0.0023<sup>***</sup>
 </td>
 <td>
--0.0933<sup>***</sup>
+-0.0018<sup>***</sup>
 </td>
 <td>
--0.0503<sup>*</sup>
+-0.0011<sup>*</sup>
 </td>
 <td>
--0.0333
+-0.0009<sup>*</sup>
 </td>
 <td>
--0.0327
+-0.0008<sup>*</sup>
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0197)
+(0.0004)
 </td>
 <td>
-(0.0256)
+(0.0006)
 </td>
 <td>
-(0.0269)
+(0.0006)
 </td>
 <td>
-(0.0246)
+(0.0005)
 </td>
 <td>
-(0.0236)
+(0.0004)
 </td>
 </tr>
 <tr>
@@ -3406,38 +3428,38 @@ Alcoolemia 0,08
 Idade 21 para beber
 </td>
 <td>
-0.0504<sup>**</sup>
+0.0011
 </td>
 <td>
-0.0629<sup>***</sup>
+0.0012<sup>**</sup>
 </td>
 <td>
--0.0110
+0.0001
 </td>
 <td>
--0.0372
+-0.0013<sup>*</sup>
 </td>
 <td>
--0.0357
+-0.0013<sup>*</sup>
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0251)
+(0.0007)
 </td>
 <td>
-(0.0183)
+(0.0005)
 </td>
 <td>
-(0.0209)
+(0.0006)
 </td>
 <td>
-(0.0240)
+(0.0007)
 </td>
 <td>
-(0.0246)
+(0.0007)
 </td>
 </tr>
 <tr>
@@ -3459,38 +3481,38 @@ Idade 21 para beber
 log(renda)
 </td>
 <td>
--0.8413<sup>***</sup>
+-0.0171<sup>***</sup>
 </td>
 <td>
--0.6568<sup>***</sup>
+-0.0103<sup>***</sup>
 </td>
 <td>
-0.8005<sup>***</sup>
+0.0193<sup>***</sup>
 </td>
 <td>
-0.6580<sup>**</sup>
+0.0057
 </td>
 <td>
-0.6664<sup>**</sup>
+0.0059
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0410)
+(0.0009)
 </td>
 <td>
-(0.0776)
+(0.0016)
 </td>
 <td>
-(0.1859)
+(0.0059)
 </td>
 <td>
-(0.2973)
+(0.0067)
 </td>
 <td>
-(0.2921)
+(0.0067)
 </td>
 </tr>
 <tr>
@@ -3512,38 +3534,38 @@ log(renda)
 Idade média
 </td>
 <td>
--0.0166<sup>**</sup>
+-0.0004<sup>**</sup>
 </td>
 <td>
--0.0045
+-0.0009
 </td>
 <td>
-0.0784<sup>***</sup>
+0.0005
 </td>
 <td>
-0.0928<sup>***</sup>
+0.0013<sup>*</sup>
 </td>
 <td>
-0.0948<sup>***</sup>
+0.0014<sup>**</sup>
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
 <td>
-(0.0065)
+(0.0002)
 </td>
 <td>
-(0.0235)
+(0.0006)
 </td>
 <td>
-(0.0289)
+(0.0007)
 </td>
 <td>
-(0.0271)
+(0.0007)
 </td>
 <td>
-(0.0264)
+(0.0007)
 </td>
 </tr>
 <tr>
@@ -3573,7 +3595,7 @@ Uso do cinto (fração)
 <td>
 </td>
 <td>
--0.1437<sup>*</sup>
+-0.0035<sup>**</sup>
 </td>
 </tr>
 <tr>
@@ -3588,7 +3610,7 @@ Uso do cinto (fração)
 <td>
 </td>
 <td>
-(0.0819)
+(0.0017)
 </td>
 </tr>
 <tr>
@@ -3610,7 +3632,7 @@ Uso do cinto (fração)
 Constant
 </td>
 <td>
-4.8378<sup>***</sup>
+0.2002<sup>***</sup>
 </td>
 <td>
 </td>
@@ -3625,7 +3647,7 @@ Constant
 <td style="text-align:left">
 </td>
 <td>
-(0.3401)
+(0.0073)
 </td>
 <td>
 </td>
@@ -3739,19 +3761,19 @@ Observations
 R<sup>2</sup>
 </td>
 <td>
-0.5852
+0.5575
 </td>
 <td>
-0.7075
+0.6810
 </td>
 <td>
-0.1283
+0.0963
 </td>
 <td>
-0.1246
+0.0713
 </td>
 <td>
-0.1342
+0.0853
 </td>
 </tr>
 <tr>
@@ -3803,20 +3825,20 @@ Erros-padrão clusterizados por estado (col. 1: robustos). Col. (4) e (5) usam 
 <tr class="odd">
 <td style="text-align: left;">(3) EF 2 vias, amostra completa</td>
 <td style="text-align: right;">765</td>
-<td style="text-align: right;">-0.0623</td>
+<td style="text-align: right;">-0.0017</td>
 <td style="text-align: right;">NA</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">(4) EF 2 vias, subamostra com uso</td>
 <td style="text-align: right;">556</td>
-<td style="text-align: right;">-0.0208</td>
+<td style="text-align: right;">-0.0002</td>
 <td style="text-align: right;">NA</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">(5) idem + uso do cinto</td>
 <td style="text-align: right;">556</td>
-<td style="text-align: right;">0.0087</td>
-<td style="text-align: right;">-0.1437</td>
+<td style="text-align: right;">0.0005</td>
+<td style="text-align: right;">-0.0035</td>
 </tr>
 </tbody>
 </table>
@@ -3825,8 +3847,8 @@ Erros-padrão clusterizados por estado (col. 1: robustos). Col. (4) e (5) usam 
 </div>
 <p>Duas coisas acontecem, e é importante não confundi-las:</p>
 <ol type="1">
-<li><strong>De (3) para (4)</strong>, o coeficiente de <code>primary</code> encolhe de <span class="math inline">\(-0{,}062\)</span> para <span class="math inline">\(-0{,}021\)</span> sem que nada tenha sido acrescentado à equação. A diferença é <strong>inteiramente de amostra</strong> — os estados-ano em que o uso do cinto é observado não são um recorte aleatório do painel.</li>
-<li><strong>De (4) para (5)</strong>, ao incluir o uso do cinto, o coeficiente da lei vai a praticamente <strong>zero</strong> (<span class="math inline">\(+0{,}009\)</span>), enquanto o uso do cinto entra com <span class="math inline">\(-0{,}144\)</span>.</li>
+<li><strong>De (3) para (4)</strong>, o coeficiente de <code>primary</code> encolhe sem que nada tenha sido acrescentado à equação. A diferença é <strong>inteiramente de amostra</strong> — os estados-ano em que o uso do cinto é observado não são um recorte aleatório do painel.</li>
+<li><strong>De (4) para (5)</strong>, ao incluir o uso do cinto, o coeficiente da lei vai a praticamente <strong>zero</strong>, enquanto o uso do cinto entra com efeito negativo e significante a 10%.</li>
 </ol>
 <div class="callout callout-style-default callout-important callout-titled" title="Isto é o mecanismo aparecendo na tabela">
 <div class="callout-header d-flex align-content-center">
@@ -3850,21 +3872,26 @@ Erros-padrão clusterizados por estado (col. 1: robustos). Col. (4) e (5) usam 
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>coefs <span class="ot">&lt;-</span> <span class="fu">coef</span>(m3)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>eps   <span class="ot">&lt;-</span> <span class="fu">ep_cluster</span>(m3)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">regime =</span> <span class="fu">c</span>(<span class="st">&quot;Fiscalização primária&quot;</span>, <span class="st">&quot;Fiscalização secundária&quot;</span>),</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">efeito_pct =</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> (<span class="fu">exp</span>(coefs[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)]) <span class="sc">-</span> <span class="dv">1</span>), <span class="dv">2</span>),</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">ep         =</span> <span class="fu">round</span>(eps[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)], <span class="dv">4</span>),</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">t          =</span> <span class="fu">round</span>(coefs[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)] <span class="sc">/</span> eps[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)], <span class="dv">2</span>),</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names  =</span> <span class="cn">NULL</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>media_fat <span class="ot">&lt;-</span> <span class="fu">mean</span>(sb<span class="sc">$</span>fatalityrate)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># em nivel o coeficiente ja e a variacao absoluta da taxa; a coluna</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># &quot;% da media&quot; o traduz para a escala relativa, comparavel entre regimes</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">regime     =</span> <span class="fu">c</span>(<span class="st">&quot;Fiscalização primária&quot;</span>, <span class="st">&quot;Fiscalização secundária&quot;</span>),</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">efeito     =</span> <span class="fu">round</span>(coefs[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)], <span class="dv">6</span>),</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_media  =</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> coefs[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)] <span class="sc">/</span> media_fat, <span class="dv">2</span>),</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">ep         =</span> <span class="fu">round</span>(eps[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)], <span class="dv">6</span>),</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">t          =</span> <span class="fu">round</span>(coefs[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)] <span class="sc">/</span> eps[<span class="fu">c</span>(<span class="st">&quot;primary&quot;</span>, <span class="st">&quot;secondary&quot;</span>)], <span class="dv">2</span>),</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names  =</span> <span class="cn">NULL</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">regime</th>
-<th style="text-align: right;">efeito_pct</th>
+<th style="text-align: right;">efeito</th>
+<th style="text-align: right;">pct_media</th>
 <th style="text-align: right;">ep</th>
 <th style="text-align: right;">t</th>
 </tr>
@@ -3872,15 +3899,17 @@ Erros-padrão clusterizados por estado (col. 1: robustos). Col. (4) e (5) usam 
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Fiscalização primária</td>
-<td style="text-align: right;">-6.04</td>
-<td style="text-align: right;">0.0370</td>
-<td style="text-align: right;">-1.68</td>
+<td style="text-align: right;">-0.001730</td>
+<td style="text-align: right;">-8.05</td>
+<td style="text-align: right;">0.001010</td>
+<td style="text-align: right;">-1.71</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Fiscalização secundária</td>
-<td style="text-align: right;">-1.99</td>
-<td style="text-align: right;">0.0223</td>
-<td style="text-align: right;">-0.90</td>
+<td style="text-align: right;">-0.000508</td>
+<td style="text-align: right;">-2.37</td>
+<td style="text-align: right;">0.000503</td>
+<td style="text-align: right;">-1.01</td>
 </tr>
 </tbody>
 </table>
@@ -3904,7 +3933,7 @@ Erros-padrão clusterizados por estado (col. 1: robustos). Col. (4) e (5) usam 
 <span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> <span class="fu">round</span>(dif <span class="sc">/</span> sedif, <span class="dv">2</span>), <span class="at">p =</span> <span class="fu">round</span>(<span class="dv">2</span> <span class="sc">*</span> <span class="fu">pnorm</span>(<span class="sc">-</span><span class="fu">abs</span>(dif <span class="sc">/</span> sedif)), <span class="dv">3</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>diferenca        ep         t         p 
-  -0.0421    0.0358   -1.1800    0.2400 </code></pre>
+  -0.0012    0.0011   -1.1500    0.2490 </code></pre>
 </div>
 </div>
 <p>A diferença tem o sinal certo, mas o teste <strong>não rejeita</strong> a igualdade a 5%. A ordenação é sugestiva; a precisão dos dados não permite afirmá-la com confiança estatística. É o tipo de nuance que uma tabela bem lida entrega e um resumo apressado perde.</p>
@@ -4105,7 +4134,7 @@ efeito_10_pp_em_pct
 </section>
 <section id="replicando-a-saída-do-gretl" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="replicando-a-saída-do-gretl"><span class="header-section-number">9</span> Replicando a saída do Gretl</h2>
-<p>O arquivo <code>SEATBELT.gdt</code> da pasta da aula traz a especificação usada em aula: a fatalidade em <strong>nível</strong> (não em log), com <code>l_income</code> e as <em>dummies</em> de tempo <code>dt_1</code>…<code>dt_15</code>.</p>
+<p>A especificação principal deste laboratório é deliberadamente a da aula — a fatalidade em <strong>nível</strong>, com <code>l_income</code> como controle. O arquivo <code>SEATBELT.gdt</code> usa <em>dummies</em> de tempo explícitas (<code>dt_1</code>…<code>dt_15</code>) em vez do argumento <code>effect = &quot;twoways&quot;</code>; as duas formas são equivalentes, como as notas da disciplina registram, e a estimação abaixo confirma.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>m_gretl <span class="ot">&lt;-</span> <span class="fu">plm</span>(fatalityrate <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                 drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age <span class="sc">+</span> <span class="fu">factor</span>(year),</span>
@@ -4122,7 +4151,7 @@ l_income   0.0193461  0.0059399  3.2569728 0.0011810
 age        0.0004869  0.0007173  0.6787847 0.4975012</code></pre>
 </div>
 </div>
-<p>Na escala original — mortes por milhão de milhas —, a fiscalização primária reduz a taxa em <span class="math inline">\(0{,}00173\)</span>. Como a média amostral é cerca de <span class="math inline">\(0{,}021\)</span>, isso equivale a uma queda de aproximadamente <strong>8%</strong>, coerente com os <span class="math inline">\(-6\%\)</span> da especificação em log.</p>
+<p>A fiscalização primária reduz a taxa em <span class="math inline">\(0{,}00173\)</span> morte por milhão de milhas. Como a média amostral é cerca de <span class="math inline">\(0{,}0215\)</span>, isso equivale a uma queda de aproximadamente <strong>8%</strong> — e o número coincide com o da coluna (3) da tabela principal, como tinha de ser.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">media_fatalidade =</span> <span class="fu">round</span>(<span class="fu">mean</span>(sb<span class="sc">$</span>fatalityrate), <span class="dv">5</span>),</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">efeito_primary   =</span> <span class="fu">round</span>(<span class="fu">coef</span>(m_gretl)[[<span class="st">&quot;primary&quot;</span>]], <span class="dv">6</span>),</span>
@@ -4137,23 +4166,72 @@ age        0.0004869  0.0007173  0.6787847 0.4975012</code></pre>
 <h2 data-number="10" class="anchored" data-anchor-id="quantas-vidas-a-tradução-para-números-absolutos"><span class="header-section-number">10</span> Quantas vidas? A tradução para números absolutos</h2>
 <p>Um coeficiente em log não conversa com política pública. A tradução usa a identidade da documentação: <em>número de mortes</em> <span class="math inline">\(=\)</span> <em>fatalityrate</em> <span class="math inline">\(\times\)</span> <em>vmt</em>.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estados sem lei no ultimo ano observado, se adotassem fiscalizacao primaria</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>ultimo <span class="ot">&lt;-</span> <span class="fu">subset</span>(sb, year <span class="sc">==</span> <span class="fu">max</span>(sb<span class="sc">$</span>year))</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>efeito_rel <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]]) <span class="sc">-</span> <span class="dv">1</span>   <span class="co"># variacao proporcional</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>mortes_hoje <span class="ot">&lt;-</span> <span class="fu">with</span>(ultimo, <span class="fu">sum</span>(fatalityrate <span class="sc">*</span> vmt))</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>mortes_contrafactual <span class="ot">&lt;-</span> <span class="fu">with</span>(<span class="fu">subset</span>(ultimo, primary <span class="sc">==</span> <span class="dv">0</span>),</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">sum</span>(fatalityrate <span class="sc">*</span> vmt <span class="sc">*</span> efeito_rel))</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">mortes_no_ano        =</span> <span class="fu">round</span>(mortes_hoje),</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">vidas_salvas_estimadas =</span> <span class="fu">round</span>(<span class="sc">-</span>mortes_contrafactual),</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">reducao_pct          =</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="sc">-</span>mortes_contrafactual <span class="sc">/</span> mortes_hoje, <span class="dv">2</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>         mortes_no_ano vidas_salvas_estimadas            reducao_pct 
-               42012.0                 2017.0                    4.8 </code></pre>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Contrafactual: os estados que em 1997 ainda nao tinham fiscalizacao</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># primaria passam a te-la. As duas formas funcionais dao contas diferentes,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"># e a diferenca entre elas e exatamente a hipotese que cada uma impoe.</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>ultimo  <span class="ot">&lt;-</span> <span class="fu">subset</span>(sb, year <span class="sc">==</span> <span class="fu">max</span>(sb<span class="sc">$</span>year))</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>sem_lei <span class="ot">&lt;-</span> <span class="fu">subset</span>(ultimo, primary <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>mortes_hoje    <span class="ot">&lt;-</span> <span class="fu">with</span>(ultimo,  <span class="fu">sum</span>(fatalityrate <span class="sc">*</span> vmt))</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>mortes_sem_lei <span class="ot">&lt;-</span> <span class="fu">with</span>(sem_lei, <span class="fu">sum</span>(fatalityrate <span class="sc">*</span> vmt))</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) em NIVEL: efeito absoluto por milhao de milhas x milhas desses estados</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>vidas_nivel <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">*</span> <span class="fu">sum</span>(sem_lei<span class="sc">$</span>vmt)</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="co"># (b) em LOG: efeito proporcional x mortes observadas desses estados</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>m3_log <span class="ot">&lt;-</span> <span class="fu">plm</span>(lfat <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>                drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age, <span class="at">data =</span> psb,</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>              <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>vidas_log <span class="ot">&lt;-</span> <span class="sc">-</span>(<span class="fu">exp</span>(<span class="fu">coef</span>(m3_log)[[<span class="st">&quot;primary&quot;</span>]]) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> mortes_sem_lei</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">base =</span> <span class="fu">c</span>(<span class="st">&quot;Nível (esp. principal)&quot;</span>, <span class="st">&quot;Log (robustez)&quot;</span>),</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">vidas_salvas =</span> <span class="fu">round</span>(<span class="fu">c</span>(vidas_nivel, vidas_log)),</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_das_mortes_do_grupo =</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">c</span>(vidas_nivel, vidas_log) <span class="sc">/</span> mortes_sem_lei, <span class="dv">1</span>),</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_do_total_nacional   =</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">c</span>(vidas_nivel, vidas_log) <span class="sc">/</span> mortes_hoje, <span class="dv">1</span>)</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="kable-table">
+<table class="table table-sm table-striped small">
+<colgroup>
+<col style="width: 28%">
+<col style="width: 15%">
+<col style="width: 29%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">base</th>
+<th style="text-align: right;">vidas_salvas</th>
+<th style="text-align: right;">pct_das_mortes_do_grupo</th>
+<th style="text-align: right;">pct_do_total_nacional</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Nível (esp. principal)</td>
+<td style="text-align: right;">3530</td>
+<td style="text-align: right;">10.6</td>
+<td style="text-align: right;">8.4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Log (robustez)</td>
+<td style="text-align: right;">2017</td>
+<td style="text-align: right;">6.0</td>
+<td style="text-align: right;">4.8</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
-<p>Se todos os estados que ainda não tinham fiscalização primária em 1997 a tivessem adotado, o modelo prevê cerca de <strong>2.000 mortes a menos por ano</strong> — algo em torno de 5% do total nacional. A estimativa é imprecisa, pelas razões já discutidas, mas dá a ordem de grandeza que a discussão de política pública exige.</p>
+</div>
+<p>Se os 43 estados que ainda não tinham fiscalização primária em 1997 a tivessem adotado, a conta fica entre <strong>2.000 e 3.500 mortes a menos por ano</strong> — algo entre 5% e 8% do total nacional.</p>
+<p>A distância entre os dois números não é erro de cálculo: é a <strong>hipótese de cada forma funcional</strong> aparecendo no resultado. Esses 43 estados têm taxa de fatalidade <strong>abaixo</strong> da média do painel, e por isso:</p>
+<ul>
+<li>o modelo <strong>em nível</strong>, que lhes atribui a mesma redução absoluta de todos, implica uma queda relativa maior neles (<span class="math inline">\(10{,}6\%\)</span>) — e mais vidas salvas;</li>
+<li>o modelo <strong>em log</strong>, que impõe queda proporcional constante, aplica os mesmos <span class="math inline">\(6\%\)</span> e chega a um número menor.</li>
+</ul>
+<p>Reportar a faixa é mais honesto que escolher um dos extremos. A estimativa é imprecisa também pelas razões estatísticas já discutidas — o intervalo de confiança do próprio coeficiente é largo —, mas a ordem de grandeza é a que a discussão de política pública exige: <strong>milhares</strong> de vidas por ano, não dezenas nem centenas de milhares.</p>
 <div class="callout callout-style-default callout-warning callout-titled" title="Um contrafactual, não uma previsão">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -4171,24 +4249,24 @@ age        0.0004869  0.0007173  0.6787847 0.4975012</code></pre>
 <section id="testes-de-especificação" class="level2" data-number="11">
 <h2 data-number="11" class="anchored" data-anchor-id="testes-de-especificação"><span class="header-section-number">11</span> Testes de especificação</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pFtest</span>(m2, <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;pooling&quot;</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pFtest</span>(m2, <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;pooling&quot;</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
     F test for individual effects
 
 data:  f
-F = 31.324, df1 = 50, df2 = 706, p-value &lt; 2.2e-16
+F = 29.343, df1 = 50, df2 = 706, p-value &lt; 2.2e-16
 alternative hypothesis: significant effects</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">phtest</span>(m2, <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;random&quot;</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">phtest</span>(m2, <span class="fu">plm</span>(f, <span class="at">data =</span> psb, <span class="at">model =</span> <span class="st">&quot;random&quot;</span>))</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
     Hausman Test
 
 data:  f
-chisq = 9.9005, df = 8, p-value = 0.2721
+chisq = 11.662, df = 8, p-value = 0.167
 alternative hypothesis: one model is inconsistent</code></pre>
 </div>
 </div>
@@ -4197,31 +4275,31 @@ alternative hypothesis: one model is inconsistent</code></pre>
 <section id="robustez" class="level2" data-number="12">
 <h2 data-number="12" class="anchored" data-anchor-id="robustez"><span class="header-section-number">12</span> Robustez</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) dependente em nivel, em vez de log</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>rb1 <span class="ot">&lt;-</span> <span class="fu">plm</span>(fatalityrate <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>             drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age, <span class="at">data =</span> psb,</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="co"># (b) tratamento unico: qualquer lei de cinto</span></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>sb<span class="sc">$</span>qualquer_lei <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(sb<span class="sc">$</span>primary <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> sb<span class="sc">$</span>secondary <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>psb2 <span class="ot">&lt;-</span> <span class="fu">pdata.frame</span>(sb, <span class="at">index =</span> <span class="fu">c</span>(<span class="st">&quot;state&quot;</span>, <span class="st">&quot;year&quot;</span>))</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>rb2 <span class="ot">&lt;-</span> <span class="fu">plm</span>(lfat <span class="sc">~</span> qualquer_lei <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span> drinkage21 <span class="sc">+</span></span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>             l_income <span class="sc">+</span> age, <span class="at">data =</span> psb2, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="co"># (c) sem controles, so as leis</span></span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>rb3 <span class="ot">&lt;-</span> <span class="fu">plm</span>(lfat <span class="sc">~</span> primary <span class="sc">+</span> secondary, <span class="at">data =</span> psb,</span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">especificacao =</span> <span class="fu">c</span>(<span class="st">&quot;Base (log, controles)&quot;</span>, <span class="st">&quot;Dependente em nível&quot;</span>,</span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;Qualquer lei de cinto&quot;</span>, <span class="st">&quot;Sem controles&quot;</span>),</span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">coef =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]], <span class="fu">coef</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]],</span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">coef</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]], <span class="fu">coef</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]]), <span class="dv">5</span>),</span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(m3)[[<span class="st">&quot;primary&quot;</span>]],</span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]],</span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]],</span>
-<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]]), <span class="dv">2</span>)</span>
-<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) dependente em LOG, em vez de nivel -- a forma funcional alternativa</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>rb1 <span class="ot">&lt;-</span> <span class="fu">plm</span>(lfat <span class="sc">~</span> primary <span class="sc">+</span> secondary <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>             drinkage21 <span class="sc">+</span> l_income <span class="sc">+</span> age, <span class="at">data =</span> psb,</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="co"># (b) tratamento unico: qualquer lei de cinto</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>sb<span class="sc">$</span>qualquer_lei <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(sb<span class="sc">$</span>primary <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> sb<span class="sc">$</span>secondary <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>psb2 <span class="ot">&lt;-</span> <span class="fu">pdata.frame</span>(sb, <span class="at">index =</span> <span class="fu">c</span>(<span class="st">&quot;state&quot;</span>, <span class="st">&quot;year&quot;</span>))</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>rb2 <span class="ot">&lt;-</span> <span class="fu">plm</span>(fatalityrate <span class="sc">~</span> qualquer_lei <span class="sc">+</span> speed65 <span class="sc">+</span> speed70 <span class="sc">+</span> ba08 <span class="sc">+</span> drinkage21 <span class="sc">+</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>             l_income <span class="sc">+</span> age, <span class="at">data =</span> psb2, <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="co"># (c) sem controles, so as leis</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>rb3 <span class="ot">&lt;-</span> <span class="fu">plm</span>(fatalityrate <span class="sc">~</span> primary <span class="sc">+</span> secondary, <span class="at">data =</span> psb,</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>           <span class="at">model =</span> <span class="st">&quot;within&quot;</span>, <span class="at">effect =</span> <span class="st">&quot;twoways&quot;</span>)</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">especificacao =</span> <span class="fu">c</span>(<span class="st">&quot;Base (nível, controles)&quot;</span>, <span class="st">&quot;Dependente em log&quot;</span>,</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;Qualquer lei de cinto&quot;</span>, <span class="st">&quot;Sem controles&quot;</span>),</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">coef =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]], <span class="fu">coef</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]],</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">coef</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]], <span class="fu">coef</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]]), <span class="dv">5</span>),</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">coef</span>(m3)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(m3)[[<span class="st">&quot;primary&quot;</span>]],</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb1)[[<span class="st">&quot;primary&quot;</span>]],</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb2)[[<span class="st">&quot;qualquer_lei&quot;</span>]],</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>              <span class="fu">coef</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]] <span class="sc">/</span> <span class="fu">ep_cluster</span>(rb3)[[<span class="st">&quot;primary&quot;</span>]]), <span class="dv">2</span>)</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="table table-sm table-striped small">
@@ -4234,24 +4312,24 @@ alternative hypothesis: one model is inconsistent</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Base (log, controles)</td>
-<td style="text-align: right;">-0.06226</td>
-<td style="text-align: right;">-1.68</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Dependente em nível</td>
+<td style="text-align: left;">Base (nível, controles)</td>
 <td style="text-align: right;">-0.00173</td>
 <td style="text-align: right;">-1.71</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">Dependente em log</td>
+<td style="text-align: right;">-0.06226</td>
+<td style="text-align: right;">-1.68</td>
+</tr>
 <tr class="odd">
 <td style="text-align: left;">Qualquer lei de cinto</td>
-<td style="text-align: right;">-0.02528</td>
-<td style="text-align: right;">-1.18</td>
+<td style="text-align: right;">-0.00066</td>
+<td style="text-align: right;">-1.39</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Sem controles</td>
-<td style="text-align: right;">-0.04697</td>
-<td style="text-align: right;">-1.17</td>
+<td style="text-align: right;">-0.00140</td>
+<td style="text-align: right;">-1.27</td>
 </tr>
 </tbody>
 </table>
@@ -4262,7 +4340,7 @@ alternative hypothesis: one model is inconsistent</code></pre>
 </section>
 <section id="conclusão" class="level2" data-number="13">
 <h2 data-number="13" class="anchored" data-anchor-id="conclusão"><span class="header-section-number">13</span> Conclusão</h2>
-<p><strong>Sobre o método.</strong> O padrão se repete em relação ao laboratório do painel <em>Guns</em>: o MQO agrupado dá um resultado com o sinal errado, e os efeitos fixos o corrigem. A diferença está no destino — no caso das armas, o efeito ia a zero; aqui, ele se estabiliza num valor negativo de cerca de <span class="math inline">\(-6\%\)</span>, com <span class="math inline">\(t \approx 1{,}7\)</span>.</p>
+<p><strong>Sobre o método.</strong> O padrão se repete em relação ao laboratório do painel <em>Guns</em>: o MQO agrupado dá um resultado com o sinal errado, e os efeitos fixos o corrigem. A diferença está no destino — no caso das armas, o efeito ia a zero; aqui, ele se estabiliza num valor negativo de cerca de <span class="math inline">\(-8\%\)</span> da fatalidade média, com <span class="math inline">\(t \approx 1{,}7\)</span> — e a conclusão não depende de a dependente entrar em nível ou em log.</p>
 <p><strong>Sobre o caso.</strong> A evidência é <em>consistente</em> com leis de cinto salvando vidas, e mais forte que a mera correlação porque três coisas apontam na mesma direção:</p>
 <ol type="1">
 <li>o sinal é negativo e <strong>estável</strong> em todas as especificações com efeitos fixos;</li>

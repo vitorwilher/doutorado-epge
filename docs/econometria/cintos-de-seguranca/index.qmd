@@ -255,9 +255,33 @@ isolar tudo isso que servem os **efeitos fixos de tempo**.
 Como no laboratório anterior, o argumento inteiro cabe numa sequência de regressões em que
 muda apenas **o que é mantido constante**.
 
+::: {.callout-note title="Nível ou log? A escolha da forma funcional"}
+A dependente entra em **nível** — mortes por milhão de milhas —, como na aula e no arquivo
+`SEATBELT.gdt`. A alternativa seria o **log**, e vale explicitar o que cada uma impõe, porque
+a escolha não é cosmética:
+
+- **em nível**, o modelo assume que a lei retira o **mesmo número absoluto** de mortes de
+  todo estado. Como o estado mais perigoso do painel tem cerca de $2{,}4$ vezes a taxa do mais
+  seguro, isso implica quedas relativas muito diferentes entre eles — 13% num, 5% noutro;
+- **em log**, assume-se efeito **proporcional** constante: a mesma queda percentual em toda
+  parte, que é a hipótese mais natural para uma tecnologia de segurança.
+
+O log tem ainda a vantagem de tornar a distribuição quase simétrica (a assimetria cai de
+$0{,}76$ para $-0{,}11$) e de produzir coeficientes lidos direto como porcentagem.
+
+A razão de manter o **nível** como especificação principal é a comparabilidade com a saída do
+Gretl apresentada em aula — e, sobretudo, o fato de que **a escolha não muda as conclusões**:
+a seção de robustez mostra os dois lado a lado, com a mesma direção, a mesma significância
+marginal e magnitudes próximas ($-8\%$ em nível contra $-6\%$ em log). Quando duas formas
+funcionais concordam, reportar as duas vale mais que defender uma.
+:::
+
 ```{r}
 #| label: modelos
-f <- lfat ~ primary + secondary + speed65 + speed70 + ba08 +
+# Especificacao principal: a fatalidade em NIVEL -- mortes por milhao de
+# milhas --, como na aula e no arquivo SEATBELT.gdt. A variante em log
+# aparece na secao de robustez.
+f <- fatalityrate ~ primary + secondary + speed65 + speed70 + ba08 +
      drinkage21 + l_income + age
 
 m1 <- lm(f, data = sb)                                              # MQO agrupado
@@ -303,13 +327,14 @@ lido ao pé da letra, leis de cinto *aumentariam* as mortes. É absurdo como rel
 tem a mesma explicação do caso *Guns* — estados que adotaram leis de fiscalização primária
 diferem sistematicamente dos demais em coisas não observadas.
 
-Com **efeitos fixos de estado**, o sinal se inverte para $-0{,}056$. Com efeitos de estado e
-tempo, $-0{,}062$.
+Com **efeitos fixos de estado**, o sinal se inverte para $-0{,}00161$. Com efeitos de estado
+e tempo, $-0{,}00173$ — isto é, $0{,}00173$ morte a menos por milhão de milhas trafegadas.
 :::
 
-A diferença em relação ao laboratório do *Guns* é o que acontece **depois** da inversão. Lá, o
-coeficiente colapsava para zero; aqui ele se estabiliza num valor **negativo e
-economicamente relevante**: cerca de $-6\%$ na taxa de fatalidade.
+Como a taxa média é $0{,}0215$, esse coeficiente equivale a uma queda de cerca de **8%** na
+fatalidade. A diferença em relação ao laboratório do *Guns* é o que acontece **depois** da
+inversão: lá o coeficiente colapsava para zero; aqui ele se estabiliza num valor **negativo e
+economicamente relevante**.
 
 ## A tabela completa
 
@@ -321,7 +346,7 @@ stargazer(m1, m2, m3, m4, m5,
   se = list(sqrt(diag(vcovHC(m1, type = "HC1"))), ep_cluster(m2), ep_cluster(m3),
             ep_cluster(m4), ep_cluster(m5)),
   title = "Leis de cinto e fatalidade no trânsito",
-  dep.var.labels = "log(mortes por milhão de milhas)",
+  dep.var.labels = "Mortes por milhão de milhas",
   column.labels = c("Pooled", "EF estado", "EF 2 vias", "EF 2 vias", "EF 2 vias"),
   covariate.labels = c("Fiscalização primária", "Fiscalização secundária",
                        "Limite 65 mph", "Limite 70+ mph", "Alcoolemia 0,08",
@@ -366,11 +391,11 @@ data.frame(
 
 Duas coisas acontecem, e é importante não confundi-las:
 
-1. **De (3) para (4)**, o coeficiente de `primary` encolhe de $-0{,}062$ para $-0{,}021$ sem
-   que nada tenha sido acrescentado à equação. A diferença é **inteiramente de amostra** — os
-   estados-ano em que o uso do cinto é observado não são um recorte aleatório do painel.
+1. **De (3) para (4)**, o coeficiente de `primary` encolhe sem que nada tenha sido
+   acrescentado à equação. A diferença é **inteiramente de amostra** — os estados-ano em que
+   o uso do cinto é observado não são um recorte aleatório do painel.
 2. **De (4) para (5)**, ao incluir o uso do cinto, o coeficiente da lei vai a praticamente
-   **zero** ($+0{,}009$), enquanto o uso do cinto entra com $-0{,}144$.
+   **zero**, enquanto o uso do cinto entra com efeito negativo e significante a 10%.
 
 ::: {.callout-important title="Isto é o mecanismo aparecendo na tabela"}
 O padrão de (4) para (5) é exatamente o que se espera **se a lei agir através do uso do
@@ -394,11 +419,15 @@ deve ter efeito maior, em valor absoluto, que a secundária.
 #| label: dose
 coefs <- coef(m3)
 eps   <- ep_cluster(m3)
+media_fat <- mean(sb$fatalityrate)
 
+# em nivel o coeficiente ja e a variacao absoluta da taxa; a coluna
+# "% da media" o traduz para a escala relativa, comparavel entre regimes
 data.frame(
-  regime = c("Fiscalização primária", "Fiscalização secundária"),
-  efeito_pct = round(100 * (exp(coefs[c("primary", "secondary")]) - 1), 2),
-  ep         = round(eps[c("primary", "secondary")], 4),
+  regime     = c("Fiscalização primária", "Fiscalização secundária"),
+  efeito     = round(coefs[c("primary", "secondary")], 6),
+  pct_media  = round(100 * coefs[c("primary", "secondary")] / media_fat, 2),
+  ep         = round(eps[c("primary", "secondary")], 6),
   t          = round(coefs[c("primary", "secondary")] / eps[c("primary", "secondary")], 2),
   row.names  = NULL
 )
@@ -577,8 +606,10 @@ sinal e a mesma ordem de grandeza, o que é o que se espera se a história causa
 
 ## Replicando a saída do Gretl
 
-O arquivo `SEATBELT.gdt` da pasta da aula traz a especificação usada em aula: a fatalidade em
-**nível** (não em log), com `l_income` e as *dummies* de tempo `dt_1`…`dt_15`.
+A especificação principal deste laboratório é deliberadamente a da aula — a fatalidade em
+**nível**, com `l_income` como controle. O arquivo `SEATBELT.gdt` usa *dummies* de tempo
+explícitas (`dt_1`…`dt_15`) em vez do argumento `effect = "twoways"`; as duas formas são
+equivalentes, como as notas da disciplina registram, e a estimação abaixo confirma.
 
 ```{r}
 #| label: gretl
@@ -590,9 +621,9 @@ ct <- coeftest(m_gretl, vcov = vcovHC(m_gretl, type = "HC1", cluster = "group"))
 round(ct[c("primary", "secondary", "ba08", "l_income", "age"), ], 7)
 ```
 
-Na escala original — mortes por milhão de milhas —, a fiscalização primária reduz a taxa em
-$0{,}00173$. Como a média amostral é cerca de $0{,}021$, isso equivale a uma queda de
-aproximadamente **8%**, coerente com os $-6\%$ da especificação em log.
+A fiscalização primária reduz a taxa em $0{,}00173$ morte por milhão de milhas. Como a média
+amostral é cerca de $0{,}0215$, isso equivale a uma queda de aproximadamente **8%** — e o
+número coincide com o da coluna (3) da tabela principal, como tinha de ser.
 
 ```{r}
 #| label: magnitude
@@ -608,23 +639,49 @@ documentação: *número de mortes* $=$ *fatalityrate* $\times$ *vmt*.
 
 ```{r}
 #| label: vidas
-# estados sem lei no ultimo ano observado, se adotassem fiscalizacao primaria
-ultimo <- subset(sb, year == max(sb$year))
-efeito_rel <- exp(coef(m3)[["primary"]]) - 1   # variacao proporcional
+# Contrafactual: os estados que em 1997 ainda nao tinham fiscalizacao
+# primaria passam a te-la. As duas formas funcionais dao contas diferentes,
+# e a diferenca entre elas e exatamente a hipotese que cada uma impoe.
+ultimo  <- subset(sb, year == max(sb$year))
+sem_lei <- subset(ultimo, primary == 0)
 
-mortes_hoje <- with(ultimo, sum(fatalityrate * vmt))
-mortes_contrafactual <- with(subset(ultimo, primary == 0),
-                             sum(fatalityrate * vmt * efeito_rel))
+mortes_hoje    <- with(ultimo,  sum(fatalityrate * vmt))
+mortes_sem_lei <- with(sem_lei, sum(fatalityrate * vmt))
 
-c(mortes_no_ano        = round(mortes_hoje),
-  vidas_salvas_estimadas = round(-mortes_contrafactual),
-  reducao_pct          = round(100 * -mortes_contrafactual / mortes_hoje, 2))
+# (a) em NIVEL: efeito absoluto por milhao de milhas x milhas desses estados
+vidas_nivel <- -coef(m3)[["primary"]] * sum(sem_lei$vmt)
+
+# (b) em LOG: efeito proporcional x mortes observadas desses estados
+m3_log <- plm(lfat ~ primary + secondary + speed65 + speed70 + ba08 +
+                drinkage21 + l_income + age, data = psb,
+              model = "within", effect = "twoways")
+vidas_log <- -(exp(coef(m3_log)[["primary"]]) - 1) * mortes_sem_lei
+
+data.frame(
+  base = c("Nível (esp. principal)", "Log (robustez)"),
+  vidas_salvas = round(c(vidas_nivel, vidas_log)),
+  pct_das_mortes_do_grupo = round(100 * c(vidas_nivel, vidas_log) / mortes_sem_lei, 1),
+  pct_do_total_nacional   = round(100 * c(vidas_nivel, vidas_log) / mortes_hoje, 1)
+)
 ```
 
-Se todos os estados que ainda não tinham fiscalização primária em 1997 a tivessem adotado, o
-modelo prevê cerca de **2.000 mortes a menos por ano** — algo em torno de 5% do total
-nacional. A estimativa é imprecisa, pelas razões já discutidas, mas dá a ordem de grandeza que
-a discussão de política pública exige.
+Se os 43 estados que ainda não tinham fiscalização primária em 1997 a tivessem adotado, a
+conta fica entre **2.000 e 3.500 mortes a menos por ano** — algo entre 5% e 8% do total
+nacional.
+
+A distância entre os dois números não é erro de cálculo: é a **hipótese de cada forma
+funcional** aparecendo no resultado. Esses 43 estados têm taxa de fatalidade **abaixo** da
+média do painel, e por isso:
+
+- o modelo **em nível**, que lhes atribui a mesma redução absoluta de todos, implica uma queda
+  relativa maior neles ($10{,}6\%$) — e mais vidas salvas;
+- o modelo **em log**, que impõe queda proporcional constante, aplica os mesmos $6\%$ e
+  chega a um número menor.
+
+Reportar a faixa é mais honesto que escolher um dos extremos. A estimativa é imprecisa também
+pelas razões estatísticas já discutidas — o intervalo de confiança do próprio coeficiente é
+largo —, mas a ordem de grandeza é a que a discussão de política pública exige: **milhares**
+de vidas por ano, não dezenas nem centenas de milhares.
 
 ::: {.callout-warning title="Um contrafactual, não uma previsão"}
 O cálculo extrapola o coeficiente médio estimado para estados que **escolheram não adotar** a
@@ -653,23 +710,23 @@ inadequado. O teste de Hausman rejeita a ortogonalidade do efeito individual, co
 
 ```{r}
 #| label: robustez
-# (a) dependente em nivel, em vez de log
-rb1 <- plm(fatalityrate ~ primary + secondary + speed65 + speed70 + ba08 +
+# (a) dependente em LOG, em vez de nivel -- a forma funcional alternativa
+rb1 <- plm(lfat ~ primary + secondary + speed65 + speed70 + ba08 +
              drinkage21 + l_income + age, data = psb,
            model = "within", effect = "twoways")
 
 # (b) tratamento unico: qualquer lei de cinto
 sb$qualquer_lei <- as.integer(sb$primary == 1 | sb$secondary == 1)
 psb2 <- pdata.frame(sb, index = c("state", "year"))
-rb2 <- plm(lfat ~ qualquer_lei + speed65 + speed70 + ba08 + drinkage21 +
+rb2 <- plm(fatalityrate ~ qualquer_lei + speed65 + speed70 + ba08 + drinkage21 +
              l_income + age, data = psb2, model = "within", effect = "twoways")
 
 # (c) sem controles, so as leis
-rb3 <- plm(lfat ~ primary + secondary, data = psb,
+rb3 <- plm(fatalityrate ~ primary + secondary, data = psb,
            model = "within", effect = "twoways")
 
 data.frame(
-  especificacao = c("Base (log, controles)", "Dependente em nível",
+  especificacao = c("Base (nível, controles)", "Dependente em log",
                     "Qualquer lei de cinto", "Sem controles"),
   coef = round(c(coef(m3)[["primary"]], coef(rb1)[["primary"]],
                  coef(rb2)[["qualquer_lei"]], coef(rb3)[["primary"]]), 5),
@@ -688,7 +745,8 @@ O sinal negativo se mantém em todas as variantes. A magnitude e a significânci
 **Sobre o método.** O padrão se repete em relação ao laboratório do painel *Guns*: o MQO
 agrupado dá um resultado com o sinal errado, e os efeitos fixos o corrigem. A diferença está
 no destino — no caso das armas, o efeito ia a zero; aqui, ele se estabiliza num valor negativo
-de cerca de $-6\%$, com $t \approx 1{,}7$.
+de cerca de $-8\%$ da fatalidade média, com $t \approx 1{,}7$ — e a conclusão não depende de
+a dependente entrar em nível ou em log.
 
 **Sobre o caso.** A evidência é *consistente* com leis de cinto salvando vidas, e mais forte
 que a mera correlação porque três coisas apontam na mesma direção:
