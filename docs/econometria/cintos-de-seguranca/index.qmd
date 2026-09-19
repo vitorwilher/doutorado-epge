@@ -263,6 +263,16 @@ f <- lfat ~ primary + secondary + speed65 + speed70 + ba08 +
 m1 <- lm(f, data = sb)                                              # MQO agrupado
 m2 <- plm(f, data = psb, model = "within")                          # EF de estado
 m3 <- plm(f, data = psb, model = "within", effect = "twoways")      # EF estado + tempo
+
+# As duas colunas seguintes rodam na SUBAMOSTRA de 556 observacoes em que
+# sb_useage existe. m4 repete a especificacao de m3 nessa subamostra -- e a
+# comparacao honesta --, e m5 acrescenta o uso do cinto como regressor.
+sb_uso  <- subset(sb, !is.na(sb_useage))
+psb_uso <- pdata.frame(sb_uso, index = c("state", "year"))
+
+m4 <- plm(f, data = psb_uso, model = "within", effect = "twoways")
+m5 <- plm(update(f, . ~ . + sb_useage), data = psb_uso,
+          model = "within", effect = "twoways")
 ```
 
 ```{r}
@@ -306,25 +316,73 @@ economicamente relevante**: cerca de $-6\%$ na taxa de fatalidade.
 ```{r}
 #| label: tabela
 #| results: asis
-stargazer(m1, m2, m3,
+stargazer(m1, m2, m3, m4, m5,
   type = "html",
-  se = list(sqrt(diag(vcovHC(m1, type = "HC1"))), ep_cluster(m2), ep_cluster(m3)),
+  se = list(sqrt(diag(vcovHC(m1, type = "HC1"))), ep_cluster(m2), ep_cluster(m3),
+            ep_cluster(m4), ep_cluster(m5)),
   title = "Leis de cinto e fatalidade no trânsito",
   dep.var.labels = "log(mortes por milhão de milhas)",
-  column.labels = c("Pooled", "EF estado", "EF 2 vias"),
+  column.labels = c("Pooled", "EF estado", "EF 2 vias", "EF 2 vias", "EF 2 vias"),
   covariate.labels = c("Fiscalização primária", "Fiscalização secundária",
                        "Limite 65 mph", "Limite 70+ mph", "Alcoolemia 0,08",
-                       "Idade 21 para beber", "log(renda)", "Idade média"),
+                       "Idade 21 para beber", "log(renda)", "Idade média",
+                       "Uso do cinto (fração)"),
   add.lines = list(
-    c("Efeitos fixos de estado", "Não", "Sim", "Sim"),
-    c("Efeitos fixos de tempo",  "Não", "Não", "Sim")
+    c("Efeitos fixos de estado", "Não", "Sim", "Sim", "Sim", "Sim"),
+    c("Efeitos fixos de tempo",  "Não", "Não", "Sim", "Sim", "Sim"),
+    c("Amostra", "completa", "completa", "completa", "com uso", "com uso")
   ),
   omit.stat = c("f", "ser", "adj.rsq"),
   digits = 4,
-  notes = "Erros-padrão clusterizados por estado (col. 1: robustos).",
+  notes = paste("Erros-padrão clusterizados por estado (col. 1: robustos).",
+                "Col. (4) e (5) usam as 556 observações em que o uso do cinto",
+                "é observado; (4) é a comparação de amostra para (5)."),
   notes.align = "l"
 )
 ```
+
+### Lendo as colunas (4) e (5)
+
+As duas últimas colunas respondem a uma pergunta que as três primeiras não alcançam: **o
+efeito da lei passa pelo uso do cinto?**
+
+A comparação tem de ser feita com cuidado, porque elas rodam na subamostra de 556
+observações. É para isso que existe a coluna (4): ela repete exatamente a especificação da
+coluna (3), mudando **apenas a amostra**. Comparar (3) com (5) misturaria dois efeitos — a
+mudança de amostra e a inclusão do regressor.
+
+```{r}
+#| label: decomposicao
+data.frame(
+  coluna = c("(3) EF 2 vias, amostra completa",
+             "(4) EF 2 vias, subamostra com uso",
+             "(5) idem + uso do cinto"),
+  n = c(nobs(m3), nobs(m4), nobs(m5)),
+  primary = round(c(coef(m3)[["primary"]], coef(m4)[["primary"]],
+                    coef(m5)[["primary"]]), 4),
+  sb_useage = c(NA, NA, round(coef(m5)[["sb_useage"]], 4))
+)
+```
+
+Duas coisas acontecem, e é importante não confundi-las:
+
+1. **De (3) para (4)**, o coeficiente de `primary` encolhe de $-0{,}062$ para $-0{,}021$ sem
+   que nada tenha sido acrescentado à equação. A diferença é **inteiramente de amostra** — os
+   estados-ano em que o uso do cinto é observado não são um recorte aleatório do painel.
+2. **De (4) para (5)**, ao incluir o uso do cinto, o coeficiente da lei vai a praticamente
+   **zero** ($+0{,}009$), enquanto o uso do cinto entra com $-0{,}144$.
+
+::: {.callout-important title="Isto é o mecanismo aparecendo na tabela"}
+O padrão de (4) para (5) é exatamente o que se espera **se a lei agir através do uso do
+cinto**. Ao controlar pelo canal, o efeito da lei desaparece — porque o canal é justamente
+por onde ele passava. Num vocabulário que o curso verá adiante, o uso do cinto é um
+**mediador**, não um confundidor.
+
+Daí uma consequência prática que vale reter: a coluna (5) **não** é a especificação preferida
+para medir o efeito da lei. Controlar pelo mediador responde a outra pergunta — "qual o efeito
+da lei que *não* passa pelo cinto?" —, e a resposta, aqui, é: praticamente nenhum. Para o
+efeito total da política, a especificação correta é a coluna (3).
+:::
 
 ## O teste da dose-resposta
 
@@ -379,9 +437,6 @@ salva vidas. O primeiro elo é **diretamente verificável** nestes dados.
 
 ```{r}
 #| label: canal
-sb_uso <- subset(sb, !is.na(sb_useage))
-psb_uso <- pdata.frame(sb_uso, index = c("state", "year"))
-
 m_uso <- plm(sb_useage ~ primary + secondary + speed65 + speed70 + ba08 +
                drinkage21 + l_income + age,
              data = psb_uso, model = "within", effect = "twoways")
