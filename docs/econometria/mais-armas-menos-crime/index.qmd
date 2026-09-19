@@ -1,0 +1,552 @@
+---
+title: "Mais armas, menos crime?"
+subtitle: "Dados em painel e efeitos fixos — painel *Guns*, 51 estados americanos, 1977–1999"
+author: "Vítor Wilher"
+date: today
+date-format: "MMMM [de] YYYY"
+lang: pt-BR
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Neste laboratório"
+    number-sections: true
+    anchor-sections: true
+    code-fold: false
+    code-copy: true
+    code-overflow: wrap
+    df-print: kable
+    embed-resources: true
+    theme:
+      light: [flatly, custom.scss]
+      dark: [darkly, custom.scss]
+    fig-width: 8
+    fig-height: 4
+    fig-align: center
+    tbl-cap-location: bottom
+execute:
+  echo: true
+  warning: false
+  message: false
+  cache: false
+---
+
+::: {.callout-note appearance="simple"}
+Laboratório da **Aula 9** de Econometria (MPEF/FGV-EPGE, Prof. Marcelo Mello).
+Acompanha o capítulo 10 da [apostila da disciplina](../apostila.pdf) e roda também
+[no Google Colab](https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/07-dados-painel.ipynb).
+[← Voltar às Notas de Econometria](../)
+:::
+
+## Objetivo
+
+Este notebook acompanha o capítulo de dados em painel das notas de aula, aplicando a regressão com dados em
+painel ao conjunto **Guns** — o painel usado no debate sobre leis de porte de arma do tipo
+*shall-issue* ("mais armas, menos crime", na formulação de John Lott).
+
+A pergunta empírica é direta: **leis que facilitam o porte de arma reduzem a criminalidade?**
+A pergunta econométrica é mais interessante, e é a do capítulo: quanto da correlação bruta
+entre lei e crime sobrevive quando controlamos por tudo aquilo que é fixo em cada estado e
+por tudo aquilo que é comum a cada ano?
+
+A resposta, antecipada: **quase nada**.
+
+```{r}
+#| label: setup
+library(plm)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(ggplot2)
+suppressMessages(library(dplyr))
+
+theme_set(theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank()))
+
+az <- "#1f4e79"; vm <- "#b3261e"; vd <- "#2e7d32"; cz <- "grey45"
+```
+
+## Importação e estrutura dos dados
+
+O arquivo está na pasta da aula, um nível acima deste notebook.
+
+```{r}
+#| label: importacao
+url <- paste0("https://raw.githubusercontent.com/vincentarelbundock/",
+              "Rdatasets/master/csv/AER/Guns.csv")
+bruto <- read.csv(url)
+
+# harmoniza os nomes com os do arquivo da disciplina (Guns.xls)
+guns <- bruto |>
+  transmute(
+    stateid     = state,
+    year        = year,
+    vio         = violent,
+    mur         = murder,
+    rob         = robbery,
+    shall       = as.integer(law == "yes"),
+    incarc_rate = prisoners,
+    density     = density,
+    avginc      = income / 1000,
+    pop         = population,
+    pb1064      = afam,
+    pw1064      = cauc,
+    pm1029      = male
+  )
+
+dim(guns)
+names(guns)
+```
+
+O dicionário das variáveis, conforme a documentação que acompanha os dados:
+
+| Variável | Descrição |
+|:---|:---|
+| `stateid` | Identificador do estado (1--56, com lacunas) |
+| `year` | Ano (77 a 99, isto é, 1977--1999) |
+| `vio` | Taxa de **crimes violentos** por 100.000 habitantes |
+| `mur` | Taxa de **homicídios** por 100.000 habitantes |
+| `rob` | Taxa de **roubos** por 100.000 habitantes |
+| `shall` | **1** se o estado tinha lei *shall-issue* em vigor no ano; 0 caso contrário |
+| `incarc_rate` | Encarcerados por 100.000 habitantes no ano anterior |
+| `density` | Habitantes por milha quadrada |
+| `avginc` | Renda pessoal *per capita*, em milhares de dólares |
+| `pop` | População, em milhões |
+| `pb1064` | % da população negra entre 10 e 64 anos |
+| `pw1064` | % da população branca entre 10 e 64 anos |
+| `pm1029` | % da população masculina entre 10 e 29 anos |
+
+: Dicionário do painel *Guns*. {#tbl-dicionario}
+
+Vamos verificar a estrutura de painel — o número de unidades, o comprimento da série
+temporal e o balanceamento:
+
+```{r}
+#| label: estrutura
+n_estados <- length(unique(guns$stateid))
+T_anos    <- length(unique(guns$year))
+
+c(unidades = n_estados,
+  periodos = T_anos,
+  observacoes = nrow(guns),
+  n_x_T = n_estados * T_anos,
+  balanceado = all(table(guns$stateid) == T_anos))
+```
+
+São **51 unidades** (os 50 estados mais o Distrito de Columbia) observadas em **23 anos**
+(1977--1999), num painel **balanceado** de $51 \times 23 = 1173$ observações. É exatamente a
+estrutura que o Gretl reporta: *Incluídas 51 unidades de corte transversal, comprimento da
+série temporal = 23*.
+
+### Preparação das variáveis
+
+Seguindo a prática da literatura, trabalhamos com o **logaritmo** das taxas de criminalidade.
+Isso tem duas vantagens: as taxas são estritamente positivas e assimétricas à direita, e os
+coeficientes passam a ser lidos como variações percentuais aproximadas (o modelo log-lin do capítulo de não-linearidades das notas).
+
+```{r}
+#| label: variaveis
+guns <- guns |>
+  mutate(
+    l_vio = log(vio),
+    l_mur = log(mur),
+    l_rob = log(rob),
+    ano   = year,
+  )
+
+# declara a estrutura de painel: indice de unidade e de tempo
+pguns <- pdata.frame(guns, index = c("stateid", "year"))
+
+pdim(pguns)
+```
+
+## Análise exploratória
+
+Antes de qualquer regressão, vale olhar os dados.
+
+### Quantos estados adotaram a lei, e quando?
+
+```{r}
+#| label: adocao
+adocao <- guns |>
+  group_by(ano) |>
+  summarise(estados_com_lei = sum(shall), .groups = "drop")
+
+ggplot(adocao, aes(ano, estados_com_lei)) +
+  geom_line(color = az, linewidth = 0.9) +
+  geom_point(color = az, size = 1.8) +
+  labs(x = NULL, y = "Nº de estados com lei shall-issue em vigor")
+```
+
+O gráfico mostra o fato que torna o painel informativo: a adoção é **escalonada no tempo**.
+Em 1977 pouquíssimos estados tinham a lei; ao fim dos anos 1990, cerca de metade a tinha. É
+essa variação *dentro* de cada estado ao longo do tempo que o estimador de efeitos fixos
+explora — e sem ela, como vimos na seção "O que não se pode estimar" das notas, não haveria nada a estimar.
+
+### A trajetória da criminalidade
+
+```{r}
+#| label: trajetoria
+media_ano <- guns |>
+  group_by(ano) |>
+  summarise(vio = mean(vio), mur = mean(mur), .groups = "drop")
+
+ggplot(media_ano, aes(ano)) +
+  geom_line(aes(y = vio / max(vio), color = "Crimes violentos"), linewidth = 0.9) +
+  geom_line(aes(y = mur / max(mur), color = "Homicídios"), linewidth = 0.9) +
+  scale_color_manual(values = c("Crimes violentos" = az, "Homicídios" = vm)) +
+  labs(x = NULL, y = "Índice (máximo = 1)")
+```
+
+Aqui está a razão de ser dos **efeitos fixos de tempo**. A criminalidade nos EUA sobe até o
+início dos anos 1990 e despenca em seguida — **em toda parte**, inclusive onde não se aprovou
+lei alguma. Qualquer análise que ignore essa tendência comum vai atribuir à lei uma queda que
+teria ocorrido de todo modo.
+
+### A comparação ingênua
+
+```{r}
+#| label: ingenua
+guns |>
+  group_by(shall = factor(shall, labels = c("Sem lei", "Com lei"))) |>
+  summarise(
+    n = n(),
+    vio_media = mean(vio),
+    mur_media = mean(mur),
+    densidade = mean(density),
+    renda = mean(avginc),
+    .groups = "drop"
+  )
+```
+
+Estados-ano **com** lei têm, em média, menos crimes violentos que os sem lei. Mas note as
+duas últimas colunas: eles também têm **densidade populacional muito menor** e renda
+diferente. Estamos comparando estados rurais do Oeste com estados urbanos do Nordeste — e a
+densidade é justamente o tipo de fator que a @tbl-dicionario mostra ser fixo no estado e
+correlacionado tanto com o crime quanto com a propensão a aprovar a lei.
+
+É o viés de variável omitida discutido no capítulo de regressão múltipla das notas, em sua forma mais clássica.
+
+## Modelo 1 — MQO agrupado (*pooled*)
+
+Começamos pela especificação que **ignora** a estrutura de painel, tratando as 1173
+observações como se fossem um corte transversal.
+
+```{r}
+#| label: m1
+m1 <- lm(l_vio ~ shall, data = guns)
+m2 <- lm(l_vio ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+         data = guns)
+```
+
+```{r}
+#| label: tab-pooled
+#| results: asis
+stargazer(m1, m2,
+  type = "html",
+  title = "Modelo 1 — MQO agrupado (pooled OLS)",
+  dep.var.labels = "log(taxa de crimes violentos)",
+  covariate.labels = c("shall (lei em vigor)", "Taxa de encarceramento",
+                       "Densidade", "Renda média", "População",
+                       "% negros 10-64", "% brancos 10-64", "% homens 10-29"),
+  omit.stat = c("f", "ser"),
+  digits = 4,
+  notes = "Erros-padrão convencionais. Sem controle pela estrutura de painel.",
+  notes.align = "l"
+)
+```
+
+Sem controles, o coeficiente de `shall` é de cerca de $-0{,}44$: estados-ano com lei teriam
+crimes violentos **44% menores** (em log). Seria um efeito espetacular — e é exatamente o
+número que alimentou a tese de Lott.
+
+Com os controles observáveis, ele cai para perto de $-0{,}37$. Mas ambos são suspeitos pela
+razão já identificada: a comparação é **entre estados diferentes**.
+
+## Modelo 2 — Efeitos fixos de estado
+
+Agora aplicamos a transformação *within* da seção de efeitos fixos das notas, que elimina tudo o que é
+constante dentro de cada estado — observado ou não.
+
+```{r}
+#| label: m3
+m3 <- plm(l_vio ~ shall, data = pguns, model = "within")
+m4 <- plm(l_vio ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+          data = pguns, model = "within")
+
+c(sem_controles = coef(m3)[["shall"]],
+  com_controles = coef(m4)[["shall"]])
+```
+
+::: {.callout-important}
+O coeficiente **troca de sinal**: de $-0{,}44$ no MQO agrupado para $+0{,}11$ com efeitos
+fixos de estado. Toda a associação negativa vinha da comparação entre estados — isto é, do
+$Z_i$ não observado do modelo — e desaparece quando cada estado é comparado **consigo
+mesmo** ao longo do tempo.
+:::
+
+### Verificando a equivalência com LSDV
+
+As notas afirmam, na seção de efeitos fixos, que a transformação *within* e o método das $n-1$ binárias
+produzem estimativas **idênticas**. Vale conferir:
+
+```{r}
+#| label: lsdv
+lsdv <- lm(l_vio ~ shall + factor(stateid), data = guns)
+
+c(within = coef(m3)[["shall"]],
+  lsdv   = coef(lsdv)[["shall"]],
+  diferenca = coef(m3)[["shall"]] - coef(lsdv)[["shall"]])
+```
+
+Coincidem até a precisão de máquina, como a álgebra previa — com a diferença de que o LSDV
+estimou 50 coeficientes de binárias que ninguém vai olhar.
+
+## Modelo 3 — Efeitos fixos de estado e de tempo
+
+Acrescentamos agora os efeitos fixos de tempo, conforme a equação de efeitos fixos de duas vias, absorvendo a
+tendência nacional que vimos no gráfico da trajetória.
+
+```{r}
+#| label: m5
+m5 <- plm(l_vio ~ shall, data = pguns, model = "within", effect = "twoways")
+m6 <- plm(l_vio ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+          data = pguns, model = "within", effect = "twoways")
+
+c(sem_controles = coef(m5)[["shall"]],
+  com_controles = coef(m6)[["shall"]])
+```
+
+O coeficiente vai praticamente a **zero**. A trajetória completa, que é a lição do capítulo
+em quatro números:
+
+```{r}
+#| label: trajetoria-coef
+data.frame(
+  especificacao = c("MQO agrupado", "EF estado", "EF estado + tempo",
+                    "EF estado + tempo + controles"),
+  shall = c(coef(m1)[["shall"]], coef(m3)[["shall"]],
+            coef(m5)[["shall"]], coef(m6)[["shall"]])
+) |>
+  mutate(shall = round(shall, 4))
+```
+
+## Erros-padrão clusterizados
+
+Como discutido na seção sobre hipóteses de MQO em painel das notas, a fórmula robusta usual é **inconsistente** em
+painel: ela pressupõe independência entre todas as observações, mas as observações de um
+mesmo estado não são independentes. O remédio é o erro-padrão **clusterizado** por unidade.
+
+```{r}
+#| label: cluster
+ep_conv <- sqrt(diag(vcov(m6)))[["shall"]]
+ep_clus <- sqrt(diag(vcovHC(m6, type = "HC1", cluster = "group")))[["shall"]]
+
+c(convencional = ep_conv,
+  clusterizado = ep_clus,
+  razao = ep_clus / ep_conv)
+```
+
+O erro-padrão clusterizado é **substancialmente maior**. Quem reportasse o convencional
+estaria trabalhando com uma estatística $t$ inflada pelo mesmo fator — e correria risco sério
+de rejeitar hipóteses nulas verdadeiras.
+
+## Tabela principal — a progressão completa
+
+Reunimos as especificações numa única tabela, com erros-padrão clusterizados por estado em
+todas as colunas. É assim que o resultado deve ser apresentado.
+
+```{r}
+#| label: ep-clusterizados
+# extrai os erros-padrao clusterizados de cada modelo, na ordem dos coeficientes
+ep_cluster <- function(modelo) {
+  sqrt(diag(vcovHC(modelo, type = "HC1", cluster = "group")))
+}
+
+se_list <- list(
+  sqrt(diag(vcovHC(m1, type = "HC1"))),   # pooled: robusto simples
+  ep_cluster(m3), ep_cluster(m4),
+  ep_cluster(m5), ep_cluster(m6)
+)
+```
+
+```{r}
+#| label: tab-principal
+#| results: asis
+stargazer(m1, m3, m4, m5, m6,
+  type = "html",
+  se = se_list,
+  title = "Leis shall-issue e crimes violentos: a progressão das especificações",
+  dep.var.labels = "log(taxa de crimes violentos)",
+  column.labels = c("Pooled", "EF estado", "EF estado", "EF 2 vias", "EF 2 vias"),
+  covariate.labels = c("shall (lei em vigor)", "Taxa de encarceramento",
+                       "Densidade", "Renda média", "População",
+                       "% negros 10-64", "% brancos 10-64", "% homens 10-29"),
+  add.lines = list(
+    c("Efeitos fixos de estado", "Não", "Sim", "Sim", "Sim", "Sim"),
+    c("Efeitos fixos de tempo",  "Não", "Não", "Não", "Sim", "Sim"),
+    c("Controles demográficos",  "Não", "Não", "Sim", "Não", "Sim")
+  ),
+  omit.stat = c("f", "ser", "adj.rsq"),
+  digits = 4,
+  notes = "Erros-padrão clusterizados por estado, exceto col. (1) — robustos.",
+  notes.align = "l"
+)
+```
+
+### Leitura da tabela
+
+A coluna (1) é a evidência que a tese "mais armas, menos crime" invoca: um efeito grande e
+altamente significante. As colunas (2) a (5) a desmontam progressivamente:
+
+1. **Ao controlar pelo estado** (col. 2--3), o coeficiente troca de sinal. O que parecia efeito
+   da lei era, na verdade, diferença permanente entre estados que adotam e estados que não
+   adotam a lei.
+2. **Ao controlar também pelo ano** (col. 4--5), o coeficiente colapsa para perto de zero e
+   deixa de ser distinguível de zero. O que restava era a queda nacional da criminalidade nos
+   anos 1990, comum a todos os estados.
+
+A conclusão é a que a literatura acadêmica consolidou (Ayres e Donohue, 2003, contra Lott):
+**o painel não sustenta a tese de que leis de porte reduzem a criminalidade**.
+
+## Replicando a saída do Gretl
+
+A especificação que aparece na tela do Gretl usa um subconjunto de controles — `density`,
+`avginc`, `pm1029`, `incarc_rate` — com efeitos fixos de estado e dummies de tempo
+(`dt_2` a `dt_23`), com erros-padrão agrupados por unidade.
+
+```{r}
+#| label: gretl
+m_gretl <- plm(l_vio ~ shall + density + avginc + pm1029 + incarc_rate + factor(year),
+               data = pguns, model = "within")
+
+ct <- coeftest(m_gretl, vcov = vcovHC(m_gretl, type = "HC1", cluster = "group"))
+round(ct[c("shall", "density", "avginc", "pm1029", "incarc_rate"), ], 7)
+```
+
+Os coeficientes reproduzem a saída do Gretl **dígito a dígito**: `shall` $= -0{,}0271992$,
+`density` $= -0{,}0944334$, `avginc` $= -0{,}0003979$, `pm1029` $= 0{,}0859734$.
+
+::: {.callout-note title="Por que o erro-padrão difere na terceira casa"}
+O Gretl reporta erro-padrão $0{,}0420773$; obtemos aqui $0{,}0416623$. A diferença está no
+**fator de correção de amostra finita** do estimador clusterizado: o Gretl usa
+$\frac{n}{n-1}\cdot\frac{N-1}{N-k}$, enquanto `vcovHC(type = "HC1")` aplica um ajuste
+ligeiramente distinto. A conclusão substantiva é idêntica — $t \approx -0{,}65$, valor-$p$
+em torno de $0{,}52$, longe de qualquer nível convencional de significância.
+:::
+
+```{r}
+#| label: gretl-ajuste
+# replicando o ajuste de amostra finita do Gretl
+G  <- length(unique(index(pguns)$stateid))
+N  <- nobs(m_gretl)
+K  <- length(coef(m_gretl))
+V  <- vcovHC(m_gretl, type = "HC0", cluster = "group")
+aj <- (G / (G - 1)) * ((N - 1) / (N - K))
+
+c(gretl_reportado = 0.0420773,
+  replicado = sqrt(diag(aj * V))[["shall"]])
+```
+
+## Robustez: outras medidas de criminalidade
+
+A conclusão depende de olharmos crimes violentos? Repetimos a especificação de duas vias com
+homicídios e roubos.
+
+```{r}
+#| label: robustez
+m_vio <- plm(l_vio ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+             data = pguns, model = "within", effect = "twoways")
+m_mur <- plm(l_mur ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+             data = pguns, model = "within", effect = "twoways")
+m_rob <- plm(l_rob ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+             data = pguns, model = "within", effect = "twoways")
+```
+
+```{r}
+#| label: tab-robustez
+#| results: asis
+stargazer(m_vio, m_mur, m_rob,
+  type = "html",
+  se = list(ep_cluster(m_vio), ep_cluster(m_mur), ep_cluster(m_rob)),
+  title = "Robustez — três medidas de criminalidade, efeitos fixos de duas vias",
+  dep.var.labels = c("log(violentos)", "log(homicídios)", "log(roubos)"),
+  covariate.labels = c("shall (lei em vigor)", "Taxa de encarceramento",
+                       "Densidade", "Renda média", "População",
+                       "% negros 10-64", "% brancos 10-64", "% homens 10-29"),
+  add.lines = list(
+    c("EF de estado e de tempo", "Sim", "Sim", "Sim")
+  ),
+  omit.stat = c("f", "ser", "adj.rsq"),
+  digits = 4,
+  notes = "Erros-padrão clusterizados por estado.",
+  notes.align = "l"
+)
+```
+
+Em nenhuma das três medidas o coeficiente de `shall` é significante e negativo com efeitos
+fixos de duas vias. A conclusão é robusta à escolha da variável dependente.
+
+## Testes de especificação
+
+### Os efeitos fixos são conjuntamente significantes?
+
+```{r}
+#| label: teste-ef
+# F de significancia conjunta dos efeitos individuais
+pFtest(m4, plm(l_vio ~ shall + incarc_rate + density + avginc + pop +
+                 pb1064 + pw1064 + pm1029, data = pguns, model = "pooling"))
+```
+
+Rejeita-se com folga a nula de que os efeitos de estado são todos iguais: o MQO agrupado é
+inadequado, como a análise sugeria.
+
+### Efeitos fixos ou efeitos aleatórios? O teste de Hausman
+
+```{r}
+#| label: hausman
+m_re <- plm(l_vio ~ shall + incarc_rate + density + avginc + pop + pb1064 + pw1064 + pm1029,
+            data = pguns, model = "random")
+
+phtest(m4, m_re)
+```
+
+O teste de Hausman compara o estimador de efeitos fixos (consistente sempre) com o de efeitos
+aleatórios (eficiente apenas se $\Cov(\alpha_i, X_{it}) = 0$). A rejeição indica que o efeito
+individual **é correlacionado** com os regressores — exatamente o que esperávamos, já que a
+propensão a aprovar a lei se relaciona com características permanentes do estado. **Efeitos
+fixos é a especificação correta.**
+
+## Conclusão
+
+O exercício ilustra, com dados reais, a mensagem central do capítulo de dados em painel das notas:
+
+1. A correlação bruta entre leis *shall-issue* e criminalidade é forte e negativa
+   ($\approx -0{,}44$), mas é **espúria** — reflete diferenças permanentes entre estados.
+2. Efeitos fixos de estado eliminam essas diferenças e **invertem o sinal** do coeficiente.
+3. Efeitos fixos de tempo eliminam a tendência nacional e levam o coeficiente a
+   **praticamente zero**.
+4. Erros-padrão clusterizados por estado, obrigatórios aqui, são cerca de duas vezes e meia
+   os convencionais.
+
+O que **não** se pode concluir: que as leis não têm efeito algum. O painel elimina variáveis
+omitidas **constantes no tempo**, mas nada faz contra as que variam dentro do estado — a
+epidemia de *crack*, mudanças no policiamento, alterações simultâneas em outras leis. E a
+hipótese de **exogeneidade estrita** é discutível: legisladores plausivelmente reagem à
+criminalidade ao decidir aprovar a lei, o que é precisamente o *feedback* que a hipótese
+proíbe.
+
+O resultado honesto é o do capítulo de validade das notas: a evidência a favor da tese "mais armas, menos
+crime" **não sobrevive** a controles elementares, e a identificação do efeito causal exigiria
+uma estratégia que o painel, sozinho, não oferece.
+
+## Referências
+
+- Ayres, I. e Donohue, J. J. (2003). "Shooting Down the More Guns, Less Crime Hypothesis".
+  *Stanford Law Review*, 55(4), 1193--1312.
+- Lott, J. R. e Mustard, D. B. (1997). "Crime, Deterrence, and Right-to-Carry Concealed
+  Handguns". *Journal of Legal Studies*, 26(1), 1--68.
+- Stock, J. H. e Watson, M. W. (2020). *Introduction to Econometrics*. 4ª ed. Pearson.
+  Capítulo 10.
