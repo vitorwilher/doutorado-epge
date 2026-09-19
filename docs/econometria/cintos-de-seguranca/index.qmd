@@ -1,0 +1,661 @@
+---
+title: "Leis de cinto salvam vidas?"
+subtitle: "Dados em painel e efeitos fixos — painel *SeatBelts*, 51 estados americanos, 1983–1997"
+author: "Vítor Wilher"
+date: today
+date-format: "MMMM [de] YYYY"
+lang: pt-BR
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Neste laboratório"
+    number-sections: true
+    anchor-sections: true
+    code-fold: false
+    code-copy: true
+    code-overflow: wrap
+    df-print: kable
+    embed-resources: true
+    theme:
+      light: [flatly, custom.scss]
+      dark: [darkly, custom.scss]
+    fig-width: 8
+    fig-height: 4
+    fig-align: center
+    tbl-cap-location: bottom
+execute:
+  echo: true
+  warning: false
+  message: false
+  cache: false
+---
+
+::: {.callout-note appearance="simple"}
+Laboratório da **Aula 9** de Econometria (MPEF/FGV-EPGE, Prof. Marcelo Mello).
+Par do laboratório sobre o painel [*Guns*](../mais-armas-menos-crime/) — mesma técnica, caso
+diferente. Acompanha o capítulo 10 da [apostila da disciplina](../apostila.pdf).
+[← Voltar às Notas de Econometria](../)
+:::
+
+## Objetivo
+
+Este notebook é o par do laboratório sobre o painel *Guns*: mesma técnica — efeitos fixos —,
+aplicada a uma pergunta diferente, com uma estrutura de identificação **mais favorável** e um
+desfecho mais interessante.
+
+A pergunta é de política pública direta: **leis que obrigam o uso do cinto de segurança
+reduzem as mortes no trânsito?**
+
+Os dados são os de Cohen e Einav (2003), publicados no *Review of Economics and Statistics*:
+um painel balanceado dos 50 estados americanos mais o Distrito de Columbia, de 1983 a 1997.
+
+O que torna o caso rico é que a lei vem em **duas intensidades**:
+
+- **Fiscalização secundária** (*secondary enforcement*): a polícia só pode multar pelo cinto
+  se já tiver parado o motorista por outra infração;
+- **Fiscalização primária** (*primary enforcement*): o não uso do cinto é, por si só, motivo
+  para parar o veículo.
+
+Se o mecanismo causal for real, a fiscalização primária deve ter efeito **maior** que a
+secundária. Essa previsão ordenada é testável — e é o que separa uma correlação de um
+argumento causal.
+
+```{r}
+#| label: setup
+library(plm)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(ggplot2)
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+
+theme_set(theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank()))
+
+az <- "#1f4e79"; vm <- "#b3261e"; vd <- "#2e7d32"; lr <- "#e07b00"; cz <- "grey45"
+```
+
+## Importação e estrutura
+
+```{r}
+#| label: importacao
+url <- paste0("https://raw.githubusercontent.com/vincentarelbundock/",
+              "Rdatasets/master/csv/AER/USSeatBelts.csv")
+bruto <- read.csv(url)
+
+# harmoniza os nomes com os do arquivo da disciplina (SeatBelts.xls).
+# na fonte online o regime vem como um fator unico (`enforce`); aqui ele volta
+# a ser o par de binarias `primary`/`secondary` usado em aula.
+sb <- bruto |>
+  transmute(
+    state        = state,
+    year         = year,
+    vmt          = miles,
+    fatalityrate = fatalities,
+    sb_useage    = seatbelt,
+    speed65      = as.integer(speed65  == "yes"),
+    speed70      = as.integer(speed70  == "yes"),
+    drinkage21   = as.integer(drinkage == "yes"),
+    ba08         = as.integer(alcohol  == "yes"),
+    income       = income,
+    age          = age,
+    primary      = as.integer(enforce == "primary"),
+    secondary    = as.integer(enforce == "secondary")
+  )
+
+dim(sb)
+names(sb)
+```
+
+O dicionário, conforme a documentação que acompanha os dados:
+
+| Variável | Descrição |
+|:---|:---|
+| `fatalityrate` | **Mortes por milhão de milhas** trafegadas |
+| `sb_useage` | Taxa de uso do cinto (fração, 0 a 1) |
+| `primary` | 1 se havia lei com **fiscalização primária** |
+| `secondary` | 1 se havia lei com **fiscalização secundária** |
+| `speed65`, `speed70` | Limite de velocidade de 65 / 70+ mph |
+| `ba08` | Limite de alcoolemia $\leq 0{,}08\%$ |
+| `drinkage21` | Idade mínima de 21 anos para beber |
+| `income` | Renda *per capita* |
+| `age` | Idade média da população |
+| `vmt` | Milhões de milhas trafegadas no ano |
+
+: Dicionário do painel *SeatBelts*. {#tbl-dic}
+
+```{r}
+#| label: estrutura
+c(estados     = length(unique(sb$state)),
+  periodos    = length(unique(sb$year)),
+  observacoes = nrow(sb),
+  balanceado  = all(table(sb$state) == length(unique(sb$year))))
+```
+
+Painel **balanceado**: $51 \times 15 = 765$ observações, de 1983 a 1997.
+
+### Um aviso sobre dados faltantes
+
+```{r}
+#| label: faltantes
+colSums(is.na(sb))
+```
+
+A variável `sb_useage` tem **209 valores faltantes** — os demais regressores estão completos.
+Isso importa: qualquer regressão que inclua o uso do cinto rodará numa **subamostra** de 556
+observações, e a comparação com os modelos de 765 observações deixa de ser estritamente
+*ceteris paribus*. Voltaremos a isso na @sec-canal, onde a variável é usada de propósito.
+
+```{r}
+#| label: preparacao
+sb <- sb |>
+  mutate(
+    lfat     = log(fatalityrate),
+    l_income = log(income),
+    # regime de fiscalizacao, como fator ordenado
+    regime = case_when(
+      primary   == 1 ~ "Primária",
+      secondary == 1 ~ "Secundária",
+      TRUE           ~ "Nenhuma"
+    ) |> factor(levels = c("Nenhuma", "Secundária", "Primária"))
+  )
+
+psb <- pdata.frame(sb, index = c("state", "year"))
+pdim(psb)
+```
+
+## Análise exploratória
+
+### A adoção das leis: de zero a quase todos
+
+```{r}
+#| label: adocao
+adocao <- sb |>
+  count(year, regime) |>
+  complete(year, regime, fill = list(n = 0))
+
+ggplot(adocao, aes(year, n, fill = regime)) +
+  geom_area(alpha = 0.85) +
+  scale_fill_manual(values = c("Nenhuma" = cz, "Secundária" = az, "Primária" = vd)) +
+  labs(x = NULL, y = "Nº de estados")
+```
+
+A figura mostra a fonte da identificação. Em **1983 nenhum estado** tinha lei de cinto; em
+**1997, 50 dos 51** tinham. A transição é gradual e escalonada, concentrada entre 1985 e 1987.
+
+```{r}
+#| label: mudancas
+sb |>
+  group_by(state) |>
+  summarise(regimes = n_distinct(regime), .groups = "drop") |>
+  count(regimes, name = "estados")
+```
+
+**Cinquenta dos 51 estados mudaram de regime** durante o período. É essa variação *dentro* de
+cada estado que o estimador de efeitos fixos usa — e ela aqui é abundante, ao contrário de
+casos em que a política muda em pouquíssimas unidades.
+
+::: {.callout-note title="Por que isso é uma boa situação empírica"}
+No laboratório do painel *Guns*, a lei era uma binária só. Aqui temos (i) muitas transições,
+(ii) **duas intensidades** de tratamento com ordenação teórica clara e (iii) uma variável de
+mecanismo — o uso do cinto — que permite verificar se o canal causal postulado existe de
+fato. É um desenho substancialmente mais informativo.
+:::
+
+### Fatalidade e uso do cinto por regime
+
+```{r}
+#| label: medias
+sb |>
+  group_by(regime) |>
+  summarise(
+    n             = n(),
+    fatalidade    = mean(fatalityrate),
+    uso_do_cinto  = mean(sb_useage, na.rm = TRUE),
+    renda         = mean(income),
+    .groups = "drop"
+  )
+```
+
+Duas leituras opostas na mesma tabela. O **uso do cinto** sobe monotonicamente com a
+intensidade da lei — 31% sem lei, 56% com fiscalização secundária, 70% com primária. É
+exatamente o que se esperaria se as leis funcionassem.
+
+Já a **fatalidade** mal se move entre os regimes, e os estados sem lei aparecem com a maior
+taxa. Mas essa comparação é entre estados diferentes em anos diferentes — e é precisamente o
+que a regressão de efeitos fixos existe para corrigir.
+
+### A trajetória temporal
+
+```{r}
+#| label: trajetoria
+media_ano <- sb |>
+  group_by(year) |>
+  summarise(fatalidade = mean(fatalityrate),
+            uso = mean(sb_useage, na.rm = TRUE), .groups = "drop")
+
+ggplot(media_ano, aes(year)) +
+  geom_line(aes(y = fatalidade / max(fatalidade), color = "Fatalidade"), linewidth = 0.9) +
+  geom_line(aes(y = uso, color = "Uso do cinto"), linewidth = 0.9) +
+  scale_color_manual(values = c("Fatalidade" = vm, "Uso do cinto" = vd)) +
+  labs(x = NULL, y = "Índice / fração")
+```
+
+A fatalidade cai ao longo de todo o período **e** o uso do cinto sobe. A tentação é ler
+causalidade nesse cruzamento — mas muitas outras coisas mudaram entre 1983 e 1997: carros mais
+seguros, *air bags*, ABS, campanhas contra o álcool ao volante, melhores estradas. É para
+isolar tudo isso que servem os **efeitos fixos de tempo**.
+
+## A progressão das especificações
+
+Como no laboratório anterior, o argumento inteiro cabe numa sequência de regressões em que
+muda apenas **o que é mantido constante**.
+
+```{r}
+#| label: modelos
+f <- lfat ~ primary + secondary + speed65 + speed70 + ba08 +
+     drinkage21 + l_income + age
+
+m1 <- lm(f, data = sb)                                              # MQO agrupado
+m2 <- plm(f, data = psb, model = "within")                          # EF de estado
+m3 <- plm(f, data = psb, model = "within", effect = "twoways")      # EF estado + tempo
+```
+
+```{r}
+#| label: progressao
+ep_cluster <- function(m) sqrt(diag(vcovHC(m, type = "HC1", cluster = "group")))
+
+extrai <- function(m, nome, robusto_simples = FALSE) {
+  e <- if (robusto_simples) sqrt(diag(vcovHC(m, type = "HC1"))) else ep_cluster(m)
+  data.frame(
+    especificacao = nome,
+    primary   = coef(m)[["primary"]],   ep_primary   = e[["primary"]],
+    secondary = coef(m)[["secondary"]], ep_secondary = e[["secondary"]]
+  )
+}
+
+rbind(
+  extrai(m1, "MQO agrupado", robusto_simples = TRUE),
+  extrai(m2, "EF de estado"),
+  extrai(m3, "EF estado + tempo")
+) |>
+  mutate(across(where(is.numeric), \(x) round(x, 4)),
+         t_primary = round(primary / ep_primary, 2))
+```
+
+::: {.callout-important title="A inversão de sinal, de novo"}
+No **MQO agrupado**, o coeficiente de `primary` é **positivo** e significante ($t \approx 3{,}4$):
+lido ao pé da letra, leis de cinto *aumentariam* as mortes. É absurdo como relação causal, e
+tem a mesma explicação do caso *Guns* — estados que adotaram leis de fiscalização primária
+diferem sistematicamente dos demais em coisas não observadas.
+
+Com **efeitos fixos de estado**, o sinal se inverte para $-0{,}056$. Com efeitos de estado e
+tempo, $-0{,}062$.
+:::
+
+A diferença em relação ao laboratório do *Guns* é o que acontece **depois** da inversão. Lá, o
+coeficiente colapsava para zero; aqui ele se estabiliza num valor **negativo e
+economicamente relevante**: cerca de $-6\%$ na taxa de fatalidade.
+
+## A tabela completa
+
+```{r}
+#| label: tabela
+#| results: asis
+stargazer(m1, m2, m3,
+  type = "html",
+  se = list(sqrt(diag(vcovHC(m1, type = "HC1"))), ep_cluster(m2), ep_cluster(m3)),
+  title = "Leis de cinto e fatalidade no trânsito",
+  dep.var.labels = "log(mortes por milhão de milhas)",
+  column.labels = c("Pooled", "EF estado", "EF 2 vias"),
+  covariate.labels = c("Fiscalização primária", "Fiscalização secundária",
+                       "Limite 65 mph", "Limite 70+ mph", "Alcoolemia 0,08",
+                       "Idade 21 para beber", "log(renda)", "Idade média"),
+  add.lines = list(
+    c("Efeitos fixos de estado", "Não", "Sim", "Sim"),
+    c("Efeitos fixos de tempo",  "Não", "Não", "Sim")
+  ),
+  omit.stat = c("f", "ser", "adj.rsq"),
+  digits = 4,
+  notes = "Erros-padrão clusterizados por estado (col. 1: robustos).",
+  notes.align = "l"
+)
+```
+
+## O teste da dose-resposta
+
+Aqui está o argumento que distingue este caso de uma correlação qualquer. Se as leis reduzem
+mortes **porque aumentam o uso do cinto**, então a fiscalização primária — mais rigorosa —
+deve ter efeito maior, em valor absoluto, que a secundária.
+
+```{r}
+#| label: dose
+coefs <- coef(m3)
+eps   <- ep_cluster(m3)
+
+data.frame(
+  regime = c("Fiscalização primária", "Fiscalização secundária"),
+  efeito_pct = round(100 * (exp(coefs[c("primary", "secondary")]) - 1), 2),
+  ep         = round(eps[c("primary", "secondary")], 4),
+  t          = round(coefs[c("primary", "secondary")] / eps[c("primary", "secondary")], 2),
+  row.names  = NULL
+)
+```
+
+A ordenação prevista pela teoria **aparece nos dados**: o efeito da fiscalização primária é
+cerca de três vezes o da secundária. Note que isso não é garantido por construção — nada na
+estimação força essa ordem, e ela poderia perfeitamente ter saído invertida.
+
+E a diferença entre os dois coeficientes é estatisticamente distinguível de zero?
+
+```{r}
+#| label: teste-diferenca
+# H0: beta_primary = beta_secondary, via estatistica de Wald
+V <- vcovHC(m3, type = "HC1", cluster = "group")
+R <- matrix(0, nrow = 1, ncol = length(coef(m3)))
+colnames(R) <- names(coef(m3))
+R[1, "primary"]   <-  1
+R[1, "secondary"] <- -1
+
+dif  <- as.numeric(R %*% coef(m3))
+sedif <- sqrt(as.numeric(R %*% V %*% t(R)))
+
+c(diferenca = round(dif, 4), ep = round(sedif, 4),
+  t = round(dif / sedif, 2), p = round(2 * pnorm(-abs(dif / sedif)), 3))
+```
+
+A diferença tem o sinal certo, mas o teste **não rejeita** a igualdade a 5%. A ordenação é
+sugestiva; a precisão dos dados não permite afirmá-la com confiança estatística. É o tipo de
+nuance que uma tabela bem lida entrega e um resumo apressado perde.
+
+## O canal causal: as leis aumentam o uso do cinto? {#sec-canal}
+
+Todo o argumento repousa num mecanismo postulado: a lei aumenta o uso do cinto, e o cinto
+salva vidas. O primeiro elo é **diretamente verificável** nestes dados.
+
+```{r}
+#| label: canal
+sb_uso <- subset(sb, !is.na(sb_useage))
+psb_uso <- pdata.frame(sb_uso, index = c("state", "year"))
+
+m_uso <- plm(sb_useage ~ primary + secondary + speed65 + speed70 + ba08 +
+               drinkage21 + l_income + age,
+             data = psb_uso, model = "within", effect = "twoways")
+
+e_uso <- ep_cluster(m_uso)
+data.frame(
+  regime = c("Fiscalização primária", "Fiscalização secundária"),
+  efeito_pp = round(100 * coef(m_uso)[c("primary", "secondary")], 2),
+  ep        = round(e_uso[c("primary", "secondary")], 4),
+  t         = round(coef(m_uso)[c("primary", "secondary")] / e_uso[c("primary", "secondary")], 2),
+  row.names = NULL
+)
+```
+
+O primeiro elo da cadeia é **forte e inequívoco**. Controlando por estado e ano, a
+fiscalização primária eleva o uso do cinto em cerca de **21 pontos percentuais**
+($t \approx 9$) e a secundária em cerca de **11 pontos** ($t \approx 8$).
+
+Note que aqui a ordenação dose-resposta é **nítida**: o efeito da primária é praticamente o
+dobro do da secundária, e ambos são estimados com precisão muito maior que os efeitos sobre a
+fatalidade.
+
+::: {.callout-important title="Por que o primeiro elo é mais preciso que o segundo"}
+O contraste entre esta tabela e a da seção anterior é instrutivo. O efeito das leis **sobre o
+uso do cinto** é medido com $t \approx 9$; o efeito **sobre a fatalidade**, com $t \approx 1{,}7$.
+
+A razão é que a fatalidade é uma variável muito mais ruidosa: ela depende de clima, obras,
+composição da frota, comportamento de risco e mil outros fatores que variam ano a ano dentro
+de um estado. O sinal da lei está lá, mas afogado em variância. O uso do cinto, ao contrário,
+responde à lei de forma quase mecânica.
+
+Isso é um argumento **a favor** da interpretação causal, não contra: o elo que deveria ser
+forte é forte, e o elo distal é fraco pela razão certa — ruído, não ausência de efeito.
+:::
+
+## O segundo elo: o uso do cinto reduz mortes? {#sec-segundo-elo}
+
+A @sec-canal estabeleceu o primeiro elo da cadeia — as leis aumentam o uso do cinto. Falta o
+segundo: **o uso do cinto reduz as mortes?** Esta é a especificação que aparece na tela do
+Gretl apresentada em aula, com a fatalidade em nível e o uso do cinto como regressor.
+
+```{r}
+#| label: segundo-elo
+sb_uso2 <- subset(sb, !is.na(sb_useage))
+psb_uso2 <- pdata.frame(sb_uso2, index = c("state", "year"))
+
+m_elo2 <- plm(fatalityrate ~ sb_useage + drinkage21 + l_income + speed65 + speed70 +
+                factor(year), data = psb_uso2, model = "within")
+
+ct2 <- coeftest(m_elo2, vcov = vcovHC(m_elo2, type = "HC1", cluster = "group"))
+round(ct2[c("sb_useage", "drinkage21", "l_income", "speed65", "speed70"), ], 8)
+```
+
+O coeficiente de `sb_useage` é $-0{,}00335$, com $t = -2{,}35$: negativo e significante a 5%.
+
+### Como interpretar esse número
+
+A interpretação exige atenção às **unidades das duas variáveis**, e é um caso em que o
+coeficiente bruto engana:
+
+- a dependente é a taxa de fatalidade em **mortes por milhão de milhas**;
+- o regressor é o uso do cinto como **fração** (0 a 1), não em porcentagem.
+
+Como ambas estão em nível, o modelo é **lin-lin** e o coeficiente mede a variação em $Y$ por
+**uma unidade** de $X$. Mas "uma unidade" aqui é ir de $0\%$ a $100\%$ de uso — o intervalo
+inteiro, que não é uma variação interpretável. A leitura útil exige reescalar para
+**1 ponto percentual**, isto é, multiplicar por $0{,}01$:
+
+```{r}
+#| label: interpretacao-elo2
+b_uso <- coef(m_elo2)[["sb_useage"]]
+media_fat <- mean(sb_uso2$fatalityrate)
+
+c(coeficiente_bruto   = round(b_uso, 8),
+  efeito_1_pp         = b_uso * 0.01,
+  media_fatalidade    = round(media_fat, 6),
+  efeito_1_pp_em_pct  = round(100 * b_uso * 0.01 / media_fat, 3),
+  efeito_10_pp_em_pct = round(100 * b_uso * 0.10 / media_fat, 2))
+```
+
+Um aumento de **1 ponto percentual** no uso do cinto reduz a taxa de fatalidade em
+$0{,}0000335$ mortes por milhão de milhas — mantidos constantes o estado, o ano e os demais
+controles. Em termos relativos, isso é cerca de **0,17% da média** amostral. Uma variação
+realista de 10 pontos percentuais corresponde a uma queda de aproximadamente **1,7%** nas
+mortes.
+
+::: {.callout-warning title="Três ressalvas sobre este coeficiente"}
+**(i) A amostra é outra.** São **556 observações**, não 765 — o painel fica desbalanceado, com
+séries de 8 a 15 anos conforme o estado, porque `sb_useage` tem 209 faltantes. Os estados que
+entram são os que reportaram uso do cinto, o que não é necessariamente aleatório.
+
+**(ii) Este coeficiente não é causal no mesmo sentido que o das leis.** O uso do cinto é uma
+**escolha** do motorista, não uma política atribuída de fora. Quem põe o cinto plausivelmente
+também dirige com mais cuidado, e as duas coisas se confundem: parte de $-0{,}0034$ pode ser
+prudência, não o cinto. É exatamente por isso que Cohen e Einav usam as **leis** como
+instrumento para o uso do cinto — a lei é plausivelmente exógena ao motorista individual, o
+uso não é. O método formal para isso são as **variáveis instrumentais**, tema do capítulo
+seguinte do curso.
+
+**(iii) Há compensação de risco.** A literatura documenta que motoristas de cinto tendem a
+dirigir de forma mais agressiva, o que atenua o efeito protetor. Esse mecanismo empurra o
+coeficiente **em direção a zero** — de modo que o efeito puramente mecânico do cinto é
+provavelmente **maior** que o estimado aqui.
+:::
+
+### A cadeia completa
+
+Juntando os dois elos, temos o argumento causal na forma em que ele deve ser avaliado:
+
+```{r}
+#| label: cadeia
+# forma reduzida na escala de niveis, para comparar com o produto dos elos
+reduzida <- plm(fatalityrate ~ primary + secondary + speed65 + speed70 + ba08 +
+                  drinkage21 + l_income + age, data = psb,
+                model = "within", effect = "twoways")
+
+elo1 <- coef(m_uso)[["primary"]]          # lei -> uso (pontos de fracao)
+elo2 <- coef(m_elo2)[["sb_useage"]]       # uso -> fatalidade
+
+data.frame(
+  elo = c("Lei primária → uso do cinto",
+          "Uso do cinto → fatalidade",
+          "Efeito indireto implícito (produto)",
+          "Efeito direto estimado (reduzido)"),
+  valor = c(round(elo1, 4),
+            round(elo2, 5),
+            round(elo1 * elo2, 6),
+            round(coef(reduzida)[["primary"]], 6)),
+  unidade = c("+pp de uso", "mortes/milhão de milhas por unidade de uso",
+              "mortes/milhão de milhas", "mortes/milhão de milhas")
+)
+```
+
+O **efeito indireto implícito** — o produto dos dois elos — é a queda na fatalidade que se
+esperaria *se todo o efeito da lei passasse pelo uso do cinto*. Compará-lo ao efeito direto
+estimado na forma reduzida é um teste informal de coerência do mecanismo: os dois têm o mesmo
+sinal e a mesma ordem de grandeza, o que é o que se espera se a história causal estiver certa.
+
+## Replicando a saída do Gretl
+
+O arquivo `SEATBELT.gdt` da pasta da aula traz a especificação usada em aula: a fatalidade em
+**nível** (não em log), com `l_income` e as *dummies* de tempo `dt_1`…`dt_15`.
+
+```{r}
+#| label: gretl
+m_gretl <- plm(fatalityrate ~ primary + secondary + speed65 + speed70 + ba08 +
+                 drinkage21 + l_income + age + factor(year),
+               data = psb, model = "within")
+
+ct <- coeftest(m_gretl, vcov = vcovHC(m_gretl, type = "HC1", cluster = "group"))
+round(ct[c("primary", "secondary", "ba08", "l_income", "age"), ], 7)
+```
+
+Na escala original — mortes por milhão de milhas —, a fiscalização primária reduz a taxa em
+$0{,}00173$. Como a média amostral é cerca de $0{,}021$, isso equivale a uma queda de
+aproximadamente **8%**, coerente com os $-6\%$ da especificação em log.
+
+```{r}
+#| label: magnitude
+c(media_fatalidade = round(mean(sb$fatalityrate), 5),
+  efeito_primary   = round(coef(m_gretl)[["primary"]], 6),
+  efeito_relativo_pct = round(100 * coef(m_gretl)[["primary"]] / mean(sb$fatalityrate), 2))
+```
+
+## Quantas vidas? A tradução para números absolutos
+
+Um coeficiente em log não conversa com política pública. A tradução usa a identidade da
+documentação: *número de mortes* $=$ *fatalityrate* $\times$ *vmt*.
+
+```{r}
+#| label: vidas
+# estados sem lei no ultimo ano observado, se adotassem fiscalizacao primaria
+ultimo <- subset(sb, year == max(sb$year))
+efeito_rel <- exp(coef(m3)[["primary"]]) - 1   # variacao proporcional
+
+mortes_hoje <- with(ultimo, sum(fatalityrate * vmt))
+mortes_contrafactual <- with(subset(ultimo, primary == 0),
+                             sum(fatalityrate * vmt * efeito_rel))
+
+c(mortes_no_ano        = round(mortes_hoje),
+  vidas_salvas_estimadas = round(-mortes_contrafactual),
+  reducao_pct          = round(100 * -mortes_contrafactual / mortes_hoje, 2))
+```
+
+Se todos os estados que ainda não tinham fiscalização primária em 1997 a tivessem adotado, o
+modelo prevê cerca de **2.000 mortes a menos por ano** — algo em torno de 5% do total
+nacional. A estimativa é imprecisa, pelas razões já discutidas, mas dá a ordem de grandeza que
+a discussão de política pública exige.
+
+::: {.callout-warning title="Um contrafactual, não uma previsão"}
+O cálculo extrapola o coeficiente médio estimado para estados que **escolheram não adotar** a
+lei. Se esses estados são diferentes — e a própria não adoção sugere que sejam —, o efeito
+neles pode ser outro. É exatamente a distinção entre validade interna e externa do capítulo
+anterior das notas.
+:::
+
+## Testes de especificação
+
+```{r}
+#| label: teste-ef
+pFtest(m2, plm(f, data = psb, model = "pooling"))
+```
+
+```{r}
+#| label: hausman
+phtest(m2, plm(f, data = psb, model = "random"))
+```
+
+O teste $F$ rejeita a nula de que os efeitos de estado são todos iguais — o MQO agrupado é
+inadequado. O teste de Hausman rejeita a ortogonalidade do efeito individual, confirmando
+**efeitos fixos** como a especificação correta.
+
+## Robustez
+
+```{r}
+#| label: robustez
+# (a) dependente em nivel, em vez de log
+rb1 <- plm(fatalityrate ~ primary + secondary + speed65 + speed70 + ba08 +
+             drinkage21 + l_income + age, data = psb,
+           model = "within", effect = "twoways")
+
+# (b) tratamento unico: qualquer lei de cinto
+sb$qualquer_lei <- as.integer(sb$primary == 1 | sb$secondary == 1)
+psb2 <- pdata.frame(sb, index = c("state", "year"))
+rb2 <- plm(lfat ~ qualquer_lei + speed65 + speed70 + ba08 + drinkage21 +
+             l_income + age, data = psb2, model = "within", effect = "twoways")
+
+# (c) sem controles, so as leis
+rb3 <- plm(lfat ~ primary + secondary, data = psb,
+           model = "within", effect = "twoways")
+
+data.frame(
+  especificacao = c("Base (log, controles)", "Dependente em nível",
+                    "Qualquer lei de cinto", "Sem controles"),
+  coef = round(c(coef(m3)[["primary"]], coef(rb1)[["primary"]],
+                 coef(rb2)[["qualquer_lei"]], coef(rb3)[["primary"]]), 5),
+  t = round(c(coef(m3)[["primary"]] / ep_cluster(m3)[["primary"]],
+              coef(rb1)[["primary"]] / ep_cluster(rb1)[["primary"]],
+              coef(rb2)[["qualquer_lei"]] / ep_cluster(rb2)[["qualquer_lei"]],
+              coef(rb3)[["primary"]] / ep_cluster(rb3)[["primary"]]), 2)
+)
+```
+
+O sinal negativo se mantém em todas as variantes. A magnitude e a significância oscilam, o que
+é honesto reportar: o resultado é **consistente**, não **cravado**.
+
+## Conclusão
+
+**Sobre o método.** O padrão se repete em relação ao laboratório do painel *Guns*: o MQO
+agrupado dá um resultado com o sinal errado, e os efeitos fixos o corrigem. A diferença está
+no destino — no caso das armas, o efeito ia a zero; aqui, ele se estabiliza num valor negativo
+de cerca de $-6\%$, com $t \approx 1{,}7$.
+
+**Sobre o caso.** A evidência é *consistente* com leis de cinto salvando vidas, e mais forte
+que a mera correlação porque três coisas apontam na mesma direção:
+
+1. o sinal é negativo e **estável** em todas as especificações com efeitos fixos;
+2. a ordenação **dose-resposta** aparece — primária tem efeito maior que secundária;
+3. o **canal causal** é verificável e forte: as leis de fato aumentam o uso do cinto, com
+   $t \approx 9$ e na ordenação esperada.
+
+Nenhum desses três elementos existia no caso das leis de porte de arma, e é a conjunção deles
+— não a estatística $t$ de um coeficiente isolado — que sustenta a leitura causal.
+
+**Sobre o que fica em aberto.** O efeito sobre a fatalidade é estimado com imprecisão, e a
+diferença entre os dois regimes não é estatisticamente significante. A exogeneidade estrita
+permanece discutível: estados com fatalidade em alta podem ter sido justamente os mais
+propensos a endurecer a lei, o que é *feedback* de $u$ para $X$ futuros. E há um fenômeno
+documentado na literatura — a **compensação de risco** (motoristas de cinto dirigindo mais
+agressivamente) — que operaria como uma variável omitida variante no tempo, contra a qual o
+efeito fixo nada pode.
+
+## Referências
+
+- Cohen, A. e Einav, L. (2003). "The Effects of Mandatory Seat Belt Laws on Driving Behavior
+  and Traffic Fatalities". *The Review of Economics and Statistics*, 85(4), 828–843.
+- Stock, J. H. e Watson, M. W. (2020). *Introduction to Econometrics*, 4ª ed., cap. 10.
