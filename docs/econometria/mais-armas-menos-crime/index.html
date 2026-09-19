@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mais armas, menos crime? — Dados em Painel · Econometria MPEF/FGV-EPGE</title>
+<meta name="description" content="Efeitos fixos aplicados ao debate 'mais armas, menos crime' com o painel Guns (51 estados americanos, 1977-1999). O coeficiente das leis shall-issue vai de -0,44 no MQO agrupado a praticamente zero com efeitos fixos de estado e de tempo.">
+<link rel="stylesheet" href="../../assets/styles.css">
+<style>
+  /* complementos pontuais: tabela de resultados e blocos de codigo */
+  .tbl{width:100%; border-collapse:collapse; margin:1.1rem 0; font-size:.94rem}
+  .tbl th,.tbl td{padding:.55rem .6rem; border-bottom:1px solid var(--line); text-align:right}
+  .tbl th:first-child,.tbl td:first-child{text-align:left}
+  .tbl thead th{font-size:.76rem; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); border-bottom-width:2px}
+  .tbl tbody tr:last-child td{border-bottom:none}
+  .tbl .hi{color:var(--accent); font-weight:700}
+  .tbl .num{font-variant-numeric:tabular-nums}
+  pre.code{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:8px; padding:.85rem 1rem; overflow-x:auto; font-size:.86rem; line-height:1.5}
+  pre.code code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .steps{counter-reset:s; list-style:none; padding:0; margin:1.2rem 0}
+  .steps li{counter-increment:s; position:relative; padding:0 0 1rem 2.4rem; margin:0}
+  .steps li::before{content:counter(s); position:absolute; left:0; top:.05rem;
+    width:1.65rem; height:1.65rem; border-radius:50%; background:var(--accent); color:#fff;
+    display:grid; place-items:center; font-size:.82rem; font-weight:700}
+  .steps strong{display:block; margin-bottom:.15rem}
+  .callout{border-left:3px solid var(--accent); background:var(--panel);
+    padding:.9rem 1.1rem; border-radius:0 8px 8px 0; margin:1.3rem 0}
+  .callout p{margin:.35rem 0}
+  .callout .lbl{font-size:.76rem; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--accent); font-weight:700}
+  .eqbox{text-align:center; padding:.6rem 0; font-size:1.02rem}
+  .fonte{font-size:.84rem; color:var(--muted); margin-top:-.5rem}
+</style>
+</head>
+<body class="econ">
+<header>
+  <div class="wrap">
+    <img class="logo" src="../../assets/epge.png" alt="EPGE/FGV">
+    <p class="eyebrow">Econometria · Aula 9 — Dados em Painel</p>
+    <h1>Mais armas, menos crime?</h1>
+    <p class="sub">Efeitos fixos aplicados a um debate real — <strong>painel <em>Guns</em></strong>, 51 estados americanos, 1977–1999</p>
+    <p class="lead">Em 1997, John Lott e David Mustard publicaram um resultado que virou bandeira
+      política: leis que facilitam o porte de arma <em>reduzem</em> a criminalidade. A correlação
+      nos dados é forte, negativa e altamente significante. Este laboratório mostra, passo a passo,
+      que ela <strong>não sobrevive</strong> a dois controles elementares — e o que isso ensina
+      sobre identificação causal com dados observacionais.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/07-dados-painel.ipynb">Abrir no Colab →</a>
+      <a class="btn" href="../apostila.pdf">Apostila (cap. 10)</a>
+    </div>
+    <a class="back" href="../">← Notas de Econometria</a>
+  </div>
+</header>
+
+<section class="wrap">
+  <h2>O problema</h2>
+  <p>Os capítulos anteriores deixaram uma dívida. O viés de variável omitida tem solução conhecida
+    quando a variável omitida é <strong>observável</strong>: inclua-a na regressão. Mas e quando ela
+    é a <em>cultura</em> de um estado, sua tradição jurídica, sua estrutura social — coisas que
+    ninguém mede?</p>
+
+  <div class="callout">
+    <p class="lbl">A ideia central</p>
+    <p>Se uma variável omitida <strong>não muda ao longo do tempo</strong>, então nenhuma
+      <strong>mudança</strong> em <em>Y</em> ao longo do tempo pode ter sido causada por ela.</p>
+  </div>
+
+  <p>Repare no que essa frase exige e no que ela dispensa. Ela <strong>dispensa</strong> observar a
+    variável omitida — a cultura pode permanecer invisível. Ela <strong>exige</strong>, em troca,
+    que a variável omitida seja constante no tempo e que a variável de interesse varie. São as duas
+    fronteiras do método, e voltaremos a elas no fim.</p>
+</section>
+
+<section class="wrap">
+  <h2>Os dados</h2>
+  <p class="muted">Painel balanceado: 51 unidades (50 estados mais o Distrito de Columbia) × 23 anos
+    (1977–1999) = 1.173 observações.</p>
+
+  <div class="grid">
+    <div class="card"><div class="n">Variável dependente</div><h3>log(crimes violentos)</h3>
+      <p>Taxa por 100.000 habitantes, em logaritmo. Também se testam homicídios e roubos.</p></div>
+    <div class="card"><div class="n">Variável de interesse</div><h3><code>shall</code></h3>
+      <p>Binária: 1 se o estado tinha lei <em>shall-issue</em> de porte em vigor naquele ano.</p></div>
+    <div class="card"><div class="n">Controles</div><h3>Demografia e polícia</h3>
+      <p>Encarceramento, densidade, renda <em>per capita</em>, população e composição etária e racial.</p></div>
+  </div>
+
+  <p>O que torna o painel informativo é que a adoção da lei foi <strong>escalonada no tempo</strong>:
+    de pouquíssimos estados em 1977 a cerca de metade no fim dos anos 1990. É essa variação
+    <em>dentro</em> de cada estado que o estimador de efeitos fixos explora.</p>
+
+  <div class="callout">
+    <p class="lbl">A comparação ingênua já entrega o problema</p>
+    <p>Estados-ano <strong>com</strong> lei têm menos crimes violentos. Mas também têm densidade
+      populacional média de <strong>0,08</strong> hab./milha² contra <strong>0,44</strong> nos
+      estados sem lei. Estamos comparando o Wyoming rural com Nova York — e a densidade é fixa no
+      estado, determinante do crime e correlacionada com a propensão a aprovar a lei. As duas
+      condições do viés de variável omitida, exatamente.</p>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>O argumento em quatro regressões</h2>
+  <p>Todas têm a mesma variável dependente e a mesma variável de interesse. Muda apenas
+    <strong>o que é mantido constante</strong>.</p>
+
+  <table class="tbl">
+    <thead>
+      <tr><th>Especificação</th><th>coef. <code>shall</code></th><th>EP</th><th><em>t</em></th><th>O que controla</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>(1) MQO agrupado</td><td class="num">−0,4430</td><td class="num">0,0475</td><td class="num">−9,32</td><td>nada</td></tr>
+      <tr><td>(2) EF de estado</td><td class="num hi">+0,1137</td><td class="num">0,0357</td><td class="num">3,18</td><td>tudo que é fixo no estado</td></tr>
+      <tr><td>(3) EF de estado e tempo</td><td class="num hi">+0,0019</td><td class="num">0,0395</td><td class="num">0,05</td><td>+ tudo que é comum ao ano</td></tr>
+      <tr><td>(4) EF duas vias + controles</td><td class="num hi">−0,0280</td><td class="num">0,0399</td><td class="num">−0,70</td><td>+ demografia e polícia</td></tr>
+    </tbody>
+  </table>
+  <p class="fonte">Erros-padrão clusterizados por estado (coluna 1: robustos a heterocedasticidade).</p>
+
+  <ol class="steps">
+    <li><strong>O MQO agrupado dá um efeito espetacular.</strong>
+      −0,44 significa crimes violentos 44% menores (em log) onde a lei vigora, com
+      <em>t</em> = −9,3. É o número que alimentou a tese — e ele compara <em>estados diferentes
+      entre si</em>.</li>
+    <li><strong>Efeitos fixos de estado invertem o sinal.</strong>
+      Ao comparar cada estado <em>consigo mesmo</em> ao longo do tempo, o coeficiente vira
+      <strong>+0,11</strong>. Toda a associação negativa vinha de diferenças permanentes entre
+      estados, não do efeito da lei.</li>
+    <li><strong>Efeitos fixos de tempo levam o efeito a zero.</strong>
+      A criminalidade despencou nos EUA nos anos 1990 <em>em toda parte</em>, inclusive onde não se
+      aprovou lei alguma. Absorvida essa tendência comum, resta <strong>+0,002</strong>:
+      <em>t</em> = 0,05.</li>
+    <li><strong>Os controles não mudam nada.</strong>
+      Acrescentar encarceramento, renda e demografia move o coeficiente para −0,028, ainda
+      indistinguível de zero. Os efeitos fixos já haviam feito o trabalho.</li>
+  </ol>
+</section>
+
+<section class="wrap">
+  <h2>Como funciona: a transformação <em>within</em></h2>
+  <p>O truque algébrico é de uma linha. Parta do modelo com efeito fixo de unidade,
+    tire a média temporal dentro de cada estado e subtraia. Como α<sub>i</sub> é constante no tempo,
+    ele sobrevive intacto à média — e some na subtração:</p>
+
+  <p class="eqbox"><em>Y</em><sub>it</sub> − <em>Ȳ</em><sub>i</sub>
+    = β₁(<em>X</em><sub>it</sub> − <em>X̄</em><sub>i</sub>)
+    + (<em>u</em><sub>it</sub> − <em>ū</em><sub>i</sub>)</p>
+
+  <p>Nunca foi preciso <strong>observar</strong> a cultura, a tradição jurídica ou qualquer outro
+    <em>Z<sub>i</sub></em>. Bastou que fossem constantes. "Estimar efeitos fixos" é literalmente
+    centrar os dados e rodar um MQO — e o notebook confere isso na máquina:</p>
+
+<pre class="code"><code>centrar &lt;- function(x, grupo) x - ave(x, grupo)
+
+guns$lvio_w  &lt;- centrar(guns$l_vio, guns$stateid)
+guns$shall_w &lt;- centrar(guns$shall, guns$stateid)
+
+within_mao &lt;- lm(lvio_w ~ shall_w - 1, data = guns)
+lsdv       &lt;- lm(l_vio ~ shall + factor(stateid), data = guns)
+
+#        plm  within_mao        lsdv
+#  0.1136629   0.1136629   0.1136629</code></pre>
+
+  <p>Os três caminhos — o pacote <code>plm</code>, a centragem à mão e a regressão com 50 variáveis
+    binárias — dão <strong>o mesmo número até a precisão de máquina</strong>, como a álgebra previa.</p>
+</section>
+
+<section class="wrap">
+  <h2>Os erros-padrão precisam ser clusterizados</h2>
+  <p>As observações de um mesmo estado <strong>não são independentes</strong> — é o mesmo estado.
+    A fórmula robusta usual pressupõe independência entre todas as observações e é
+    <strong>inconsistente</strong> aqui.</p>
+
+  <table class="tbl">
+    <thead><tr><th>Erro-padrão de <code>shall</code></th><th>Valor</th><th>Razão</th></tr></thead>
+    <tbody>
+      <tr><td>Convencional</td><td class="num">0,0172</td><td class="num">—</td></tr>
+      <tr><td>Clusterizado por estado</td><td class="num hi">0,0399</td><td class="num hi">2,33×</td></tr>
+    </tbody>
+  </table>
+
+  <p>Quem reportasse o convencional trabalharia com uma estatística <em>t</em> inflada pelo mesmo
+    fator — e correria risco sério de rejeitar hipóteses nulas verdadeiras. Em painel com efeitos
+    fixos, erros-padrão clusterizados por unidade são o padrão da literatura aplicada; sua ausência
+    numa tabela é motivo legítimo de crítica em um <em>referee report</em>.</p>
+</section>
+
+<section class="wrap">
+  <h2>A fronteira do método</h2>
+  <p>O efeito fixo elimina <strong>tudo</strong> que é constante na unidade — inclusive aquilo que
+    gostaríamos de estimar. Se <em>X<sub>it</sub></em> = <em>X<sub>i</sub></em> para todo <em>t</em>,
+    então o regressor centrado é <strong>identicamente zero</strong> e não há o que estimar:</p>
+
+<pre class="code"><code>guns$dens_fixa &lt;- ave(guns$density, guns$stateid)   # invariante por construção
+max(abs(centrar(guns$dens_fixa, guns$stateid)))
+#  [1] 0</code></pre>
+
+  <p>É a contrapartida exata da virtude: <strong>o mesmo mecanismo que elimina a cultura não
+    observada elimina também a densidade observada</strong>. Qualquer variável invariante no tempo —
+    gênero, raça, país de nascimento, tradição jurídica — tem seu coeficiente eliminado junto.</p>
+
+  <div class="feat">
+    <div><h4>O que o painel resolve</h4><p>Variáveis omitidas <strong>constantes no tempo</strong>,
+      observadas ou não. É muito: cultura, instituições, geografia, estrutura social.</p></div>
+    <div><h4>O que ele não resolve</h4><p>Variáveis omitidas que <strong>variam dentro</strong> da
+      unidade — a epidemia de <em>crack</em>, mudanças no policiamento, outras leis alteradas ao
+      mesmo tempo.</p></div>
+    <div><h4>A hipótese discutível</h4><p><strong>Exogeneidade estrita</strong> proíbe
+      <em>feedback</em> de choques para valores futuros de <em>X</em>. Aqui ela é frágil:
+      legisladores plausivelmente reagem à criminalidade ao decidir aprovar a lei.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Validação: a saída do Gretl, dígito a dígito</h2>
+  <p>A especificação apresentada em aula no Gretl — efeitos fixos de estado, <em>dummies</em> de
+    tempo e erros agrupados por unidade — é reproduzida pelo notebook sem discrepância:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Regressor</th><th>Gretl</th><th>R (<code>plm</code>)</th></tr></thead>
+    <tbody>
+      <tr><td><code>shall</code></td><td class="num">−0,0271992</td><td class="num">−0,0271992</td></tr>
+      <tr><td><code>density</code></td><td class="num">−0,0944334</td><td class="num">−0,0944334</td></tr>
+      <tr><td><code>avginc</code></td><td class="num">−0,0003979</td><td class="num">−0,0003979</td></tr>
+      <tr><td><code>pm1029</code></td><td class="num">0,0859734</td><td class="num">0,0859734</td></tr>
+    </tbody>
+  </table>
+
+  <p>O erro-padrão sai 0,04166 contra os 0,0420773 do Gretl — diferença que vem do
+    <strong>fator de correção de amostra finita</strong> do estimador clusterizado. Aplicando o mesmo
+    ajuste do Gretl, <em>G</em>/(<em>G</em>−1) · (<em>N</em>−1)/(<em>N</em>−<em>K</em>), obtém-se
+    <strong>0,0420590</strong>: coincidência até a quinta casa decimal.</p>
+</section>
+
+<section class="wrap">
+  <h2>Robustez</h2>
+  <p>A conclusão depende de olharmos crimes violentos? Repetindo a especificação de duas vias com
+    controles para as três medidas:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Variável dependente</th><th>coef. <code>shall</code></th><th>EP (cluster)</th><th><em>t</em></th></tr></thead>
+    <tbody>
+      <tr><td>log(crimes violentos)</td><td class="num">−0,0280</td><td class="num">0,0399</td><td class="num">−0,70</td></tr>
+      <tr><td>log(homicídios)</td><td class="num">−0,0150</td><td class="num">0,0375</td><td class="num">−0,40</td></tr>
+      <tr><td>log(roubos)</td><td class="num">+0,0268</td><td class="num">0,0512</td><td class="num">0,52</td></tr>
+    </tbody>
+  </table>
+
+  <p>Em nenhuma das três o coeficiente é negativo <strong>e</strong> significante. A conclusão é
+    robusta à escolha da variável dependente.</p>
+</section>
+
+<section class="wrap">
+  <h2>O que levar daqui</h2>
+  <p>A evidência a favor de "mais armas, menos crime" <strong>não sobrevive</strong> a controles
+    elementares — é a conclusão a que Ayres e Donohue (2003) chegaram contra Lott. O coeficiente
+    troca de sinal com efeitos de estado e vai a zero com efeitos de tempo.</p>
+
+  <p>Mas a lição metodológica é mais geral que o caso. Uma correlação forte, significante a 1% e
+    publicada em periódico respeitado pode ser inteiramente <strong>composição</strong>: estados que
+    adotam a lei já eram diferentes, e o período em que a adotaram já vinha com o crime em queda.
+    O painel move a análise para muito mais perto da identificação causal — <em>sem jamais medir</em>
+    as variáveis que a ameaçavam.</p>
+
+  <p>E não a entrega sozinho. Reconhecer o que o método <strong>não</strong> resolve é parte do
+    resultado.</p>
+
+  <div class="cta">
+    <a class="btn primary" href="https://colab.research.google.com/github/vitorwilher/doutorado-epge/blob/main/labs/econometria/07-dados-painel.ipynb">Rodar o notebook no Colab →</a>
+    <a class="btn" href="../apostila.pdf">Capítulo 10 da apostila</a>
+    <a class="btn" href="https://github.com/vitorwilher/doutorado-epge/blob/main/labs/econometria/07-dados-painel.ipynb">Ver no GitHub</a>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Referências</h2>
+  <p class="muted">
+    Ayres, I. e Donohue, J. J. (2003). “Shooting Down the More Guns, Less Crime Hypothesis”.
+    <em>Stanford Law Review</em>, 55(4), 1193–1312.<br>
+    Lott, J. R. e Mustard, D. B. (1997). “Crime, Deterrence, and Right-to-Carry Concealed Handguns”.
+    <em>Journal of Legal Studies</em>, 26(1), 1–68.<br>
+    Stock, J. H. e Watson, M. W. (2020). <em>Introduction to Econometrics</em>, 4ª ed., cap. 10.
+  </p>
+  <a class="back" href="../">← Notas de Econometria</a>
+</section>
+
+</body>
+</html>
