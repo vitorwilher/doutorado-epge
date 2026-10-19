@@ -14,6 +14,7 @@ O acervo cresce a cada disciplina cursada ao longo do doutorado.
 | 3 | Microeconomia | Carlos Eugênio Ellery Lustosa da Costa | [`docs/microeconomia/apostila.pdf`](docs/microeconomia/apostila.pdf) |
 | 4 | Estatística | Eduardo Campos | [`docs/estatistica/apostila.pdf`](docs/estatistica/apostila.pdf) |
 | 5 | Econometria | Marcelo Mello | [`docs/econometria/apostila.pdf`](docs/econometria/apostila.pdf) |
+| 6 | Dívida Soberana e Câmbio | Ana Flávia Soares dos Santos Oliveira | [`docs/divida-cambio/apostila.pdf`](docs/divida-cambio/apostila.pdf) |
 
 ## Laboratórios em R
 
@@ -48,7 +49,10 @@ mais as **monitorias e listas resolvidas** de cada disciplina.
     ├── estatistica/
     │   ├── index.html
     │   └── apostila.pdf
-    └── econometria/
+    ├── econometria/
+    │   ├── index.html
+    │   └── apostila.pdf
+    └── divida-cambio/
         ├── index.html
         └── apostila.pdf
 └── labs/                       # notebooks executáveis (não fazem parte do site)
